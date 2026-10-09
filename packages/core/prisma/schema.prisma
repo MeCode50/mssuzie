@@ -1,0 +1,328 @@
+// MsSuzie Session Copilot — data model.
+// Better Auth owns users/sessions/accounts/verifications; `users` is extended with `role`.
+// Everything is snake_case in Postgres, camelCase in the Prisma client.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ops
+  tutor
+}
+
+enum LearnerStatus {
+  on_track
+  watch
+  at_risk
+}
+
+enum EventType {
+  exam
+  assignment
+}
+
+enum RunStatus {
+  queued
+  running
+  completed
+  partial
+  failed
+}
+
+enum StepStatus {
+  pending
+  running
+  completed
+  failed
+  skipped
+}
+
+enum AgentName {
+  privacy_guard
+  session_analyst
+  progress_monitor
+  learning_planner
+  parent_reporter
+}
+
+enum UpdateStatus {
+  draft
+  approved
+}
+
+enum AlertType {
+  refund_risk
+}
+
+enum AlertSeverity {
+  medium
+  high
+}
+
+enum AlertStatus {
+  open
+  resolved
+}
+
+// ───────────── Auth (Better Auth) ─────────────
+
+model User {
+  id            String   @id
+  name          String
+  email         String   @unique
+  emailVerified Boolean  @default(false) @map("email_verified")
+  image         String?
+  role          Role     @default(tutor)
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  sessions       AuthSession[]
+  accounts       Account[]
+  learners       Learner[]         @relation("LearnerTutor")
+  tutoredSession TutoringSession[]
+
+  @@map("users")
+}
+
+model AuthSession {
+  id        String   @id
+  expiresAt DateTime @map("expires_at")
+  token     String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent")
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("auth_sessions")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String    @map("account_id")
+  providerId            String    @map("provider_id")
+  userId                String    @map("user_id")
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?   @map("access_token")
+  refreshToken          String?   @map("refresh_token")
+  idToken               String?   @map("id_token")
+  accessTokenExpiresAt  DateTime? @map("access_token_expires_at")
+  refreshTokenExpiresAt DateTime? @map("refresh_token_expires_at")
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@map("accounts")
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime @map("expires_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@index([identifier])
+  @@map("verifications")
+}
+
+// Postgres-backed rate limiting (works across serverless instances; no Redis).
+// Used by Better Auth (login) and by our own per-IP / per-user limiters.
+model RateLimit {
+  id          String @id
+  key         String @unique
+  count       Int
+  lastRequest BigInt @map("last_request")
+
+  @@map("rate_limits")
+}
+
+// ───────────── Domain ─────────────
+
+model Learner {
+  id               String        @id @default(uuid())
+  displayName      String        @map("display_name")
+  age              Int
+  grade            String
+  subjects         String[]
+  interests        String[]
+  planHoursPerWeek Int           @map("plan_hours_per_week")
+  tutorId          String        @map("tutor_id")
+  tutor            User          @relation("LearnerTutor", fields: [tutorId], references: [id])
+  currentStatus    LearnerStatus @default(on_track) @map("current_status")
+  // Names/schools/cities the Privacy Guard must always redact for this learner.
+  school           String?
+  city             String?
+  createdAt        DateTime      @default(now()) @map("created_at")
+
+  guardians      Guardian[]
+  events         Event[]
+  sessions       TutoringSession[]
+  skillSnapshots SkillSnapshot[]
+  parentUpdates  ParentUpdate[]
+  alerts         Alert[]
+
+  @@index([tutorId])
+  @@map("learners")
+}
+
+model Guardian {
+  id        String  @id @default(uuid())
+  learnerId String  @map("learner_id")
+  learner   Learner @relation(fields: [learnerId], references: [id], onDelete: Cascade)
+  name      String
+  email     String
+  phone     String
+
+  @@index([learnerId])
+  @@map("guardians")
+}
+
+model Event {
+  id        String    @id @default(uuid())
+  learnerId String    @map("learner_id")
+  learner   Learner   @relation(fields: [learnerId], references: [id], onDelete: Cascade)
+  type      EventType
+  subject   String
+  title     String
+  dueDate   DateTime  @map("due_date")
+
+  @@index([learnerId, dueDate])
+  @@map("events")
+}
+
+model TutoringSession {
+  id            String   @id @default(uuid())
+  learnerId     String   @map("learner_id")
+  learner       Learner  @relation(fields: [learnerId], references: [id], onDelete: Cascade)
+  tutorId       String   @map("tutor_id")
+  tutor         User     @relation(fields: [tutorId], references: [id])
+  heldAt        DateTime @map("held_at")
+  durationMin   Int      @map("duration_min")
+  // AES-256-GCM payload (versioned, base64). Never sent to any model.
+  notesRaw      String   @map("notes_raw")
+  notesRedacted String?  @map("notes_redacted")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  runs           Run[]
+  skillSnapshots SkillSnapshot[]
+
+  @@index([learnerId, heldAt])
+  @@map("sessions")
+}
+
+model Run {
+  id                String          @id @default(uuid())
+  sessionId         String          @map("session_id")
+  session           TutoringSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  status            RunStatus       @default(queued)
+  idempotencyKey    String          @unique @map("idempotency_key")
+  createdById       String?         @map("created_by_id")
+  createdAt         DateTime        @default(now()) @map("created_at")
+  startedAt         DateTime?       @map("started_at")
+  finishedAt        DateTime?       @map("finished_at")
+  totalTokens       Int             @default(0) @map("total_tokens")
+  costUsd           Decimal         @default(0) @map("cost_usd") @db.Decimal(12, 6)
+  lockedBy          String?         @map("locked_by")
+  lockedAt          DateTime?       @map("locked_at")
+  // AES-256-GCM encrypted token map (original value <-> token). Nulled by the 30-day sweep.
+  tokenMapEnc       String?         @map("token_map_enc")
+  tokenMapExpiresAt DateTime?       @map("token_map_expires_at")
+
+  steps         RunStep[]
+  parentUpdates ParentUpdate[]
+  alerts        Alert[]
+
+  @@index([status, createdAt])
+  @@index([sessionId])
+  @@index([createdById, createdAt])
+  @@index([tokenMapExpiresAt])
+  @@map("runs")
+}
+
+model RunStep {
+  id         String     @id @default(uuid())
+  runId      String     @map("run_id")
+  run        Run        @relation(fields: [runId], references: [id], onDelete: Cascade)
+  // Monotonic per run; the SSE stream replays and then polls by seq.
+  seq        Int
+  agent      AgentName
+  status     StepStatus
+  attempt    Int        @default(1)
+  outputJson Json?      @map("output_json")
+  error      String?
+  model      String?
+  tokensIn   Int        @default(0) @map("tokens_in")
+  tokensOut  Int        @default(0) @map("tokens_out")
+  durationMs Int        @default(0) @map("duration_ms")
+  costUsd    Decimal    @default(0) @map("cost_usd") @db.Decimal(12, 6)
+  createdAt  DateTime   @default(now()) @map("created_at")
+
+  @@unique([runId, seq])
+  @@index([runId, agent])
+  @@map("run_steps")
+}
+
+model SkillSnapshot {
+  id        String          @id @default(uuid())
+  learnerId String          @map("learner_id")
+  learner   Learner         @relation(fields: [learnerId], references: [id], onDelete: Cascade)
+  sessionId String          @map("session_id")
+  session   TutoringSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  skill     String
+  mastery   Float
+  evidence  String
+  createdAt DateTime        @default(now()) @map("created_at")
+
+  @@index([learnerId, skill])
+  @@index([sessionId])
+  @@map("skill_snapshots")
+}
+
+model ParentUpdate {
+  id         String       @id @default(uuid())
+  learnerId  String       @map("learner_id")
+  learner    Learner      @relation(fields: [learnerId], references: [id], onDelete: Cascade)
+  runId      String?      @map("run_id")
+  run        Run?         @relation(fields: [runId], references: [id], onDelete: SetNull)
+  body       String
+  status     UpdateStatus @default(draft)
+  approvedBy String?      @map("approved_by")
+  approvedAt DateTime?    @map("approved_at")
+  createdAt  DateTime     @default(now()) @map("created_at")
+
+  @@index([learnerId, createdAt])
+  @@map("parent_updates")
+}
+
+model Alert {
+  id             String        @id @default(uuid())
+  learnerId      String        @map("learner_id")
+  learner        Learner       @relation(fields: [learnerId], references: [id], onDelete: Cascade)
+  runId          String?       @map("run_id")
+  run            Run?          @relation(fields: [runId], references: [id], onDelete: SetNull)
+  type           AlertType     @default(refund_risk)
+  severity       AlertSeverity
+  reason         String
+  intervention   String?
+  status         AlertStatus   @default(open)
+  resolvedBy     String?       @map("resolved_by")
+  resolutionNote String?       @map("resolution_note")
+  createdAt      DateTime      @default(now()) @map("created_at")
+  resolvedAt     DateTime?     @map("resolved_at")
+
+  @@index([status, createdAt])
+  @@index([learnerId])
+  @@map("alerts")
+}

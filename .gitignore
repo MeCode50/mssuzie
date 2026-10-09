@@ -1,0 +1,18 @@
+node_modules/
+.next/
+dist/
+.env
+.env.*
+!.env.example
+*.log
+coverage/
+playwright-report/
+test-results/
+packages/core/src/generated/
+packages/core/eval-results/
+# Project-scoped Claude state — never tracked
+.claude/memory/
+.claude/plans/
+.claude/audits/
+.claude/sessions/
+.claude/.local/

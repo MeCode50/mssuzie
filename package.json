@@ -1,0 +1,20 @@
+{
+  "name": "mssuzie-session-copilot",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "typecheck": "pnpm -r --if-present typecheck",
+    "test": "pnpm -r --if-present test",
+    "db:generate": "pnpm --filter @mssuzie/core db:generate",
+    "db:migrate": "pnpm --filter @mssuzie/core db:migrate",
+    "db:deploy": "pnpm --filter @mssuzie/core db:deploy",
+    "db:seed": "pnpm --filter @mssuzie/core db:seed",
+    "run-session": "pnpm --filter @mssuzie/core run-session",
+    "eval": "pnpm --filter @mssuzie/core eval",
+    "check:secrets": "node scripts/check-secrets.mjs"
+  }
+}

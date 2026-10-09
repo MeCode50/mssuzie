@@ -1,0 +1,7 @@
+{
+  "name": "@mssuzie/web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": { "typecheck": "echo \"web: scaffold only (Step 5)\"" }
+}
