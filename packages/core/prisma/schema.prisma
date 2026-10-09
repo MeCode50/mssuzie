@@ -236,6 +236,8 @@ model Run {
   costUsd           Decimal         @default(0) @map("cost_usd") @db.Decimal(12, 6)
   lockedBy          String?         @map("locked_by")
   lockedAt          DateTime?       @map("locked_at")
+  // Incremented on every claim; a run claimed too many times without finishing is failed, not re-queued.
+  claimCount        Int             @default(0) @map("claim_count")
   // AES-256-GCM encrypted token map (original value <-> token). Nulled by the 30-day sweep.
   tokenMapEnc       String?         @map("token_map_enc")
   tokenMapExpiresAt DateTime?       @map("token_map_expires_at")
@@ -245,6 +247,7 @@ model Run {
   alerts        Alert[]
 
   @@index([status, createdAt])
+  @@index([status, lockedAt])
   @@index([sessionId])
   @@index([createdById, createdAt])
   @@index([tokenMapExpiresAt])

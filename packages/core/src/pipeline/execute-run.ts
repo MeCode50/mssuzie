@@ -10,7 +10,17 @@ import type { AgentName, PipelineInput, PriorOutputs, StepEvent } from "./types.
 export const TOKEN_MAP_RETENTION_DAYS = 30;
 const DAY_MS = 86_400_000;
 
+/** Thrown when this worker no longer holds the run's lock (it was re-queued and taken over). */
+export class LockLostError extends Error {
+  constructor(readonly runId: string) {
+    super(`Lock on run ${runId} was lost; abandoning without writing results`);
+    this.name = "LockLostError";
+  }
+}
+
 export interface ExecuteDeps {
+  /** When set, results are only written while this worker still holds the run's lock. */
+  lockedBy?: string;
   prisma: PrismaClient;
   llm: LlmConfig;
   encryptionKey: string;
@@ -130,6 +140,12 @@ async function loadPrior(deps: ExecuteDeps, runId: string, sessionId: string) {
   return { prior, attempts, nextSeq: (rows.at(-1)?.seq ?? 0) + 1 };
 }
 
+async function assertLock(deps: ExecuteDeps, runId: string): Promise<void> {
+  if (!deps.lockedBy) return;
+  const held = await deps.prisma.run.count({ where: { id: runId, lockedBy: deps.lockedBy, status: "running" } });
+  if (held === 0) throw new LockLostError(runId);
+}
+
 /**
  * Execute (or retry) one run: load inputs, run the pipeline while appending a run_steps row per
  * event, then persist snapshots, learner status, the refund-risk alert and the draft parent update.
@@ -175,6 +191,7 @@ export async function executeRun(deps: ExecuteDeps, runId: string): Promise<RunS
       },
     });
 
+    await assertLock(deps, runId);
     const persisted = await prisma.$transaction(async (tx) => {
       if (result.analysis) {
         await tx.skillSnapshot.deleteMany({ where: { sessionId } });
@@ -213,6 +230,7 @@ export async function executeRun(deps: ExecuteDeps, runId: string): Promise<RunS
       return { alertId, parentUpdateId };
     });
 
+    await assertLock(deps, runId);
     const totals = await prisma.runStep.aggregate({
       where: { runId }, _sum: { tokensIn: true, tokensOut: true, costUsd: true },
     });
@@ -225,6 +243,7 @@ export async function executeRun(deps: ExecuteDeps, runId: string): Promise<RunS
 
     return { runId, outcome: result.outcome, totalTokens, costUsd: cost, failures: result.failures, ...persisted };
   } catch (err) {
+    if (err instanceof LockLostError) throw err;
     await prisma.run
       .update({ where: { id: runId }, data: { status: "failed", finishedAt: now(), lockedBy: null, lockedAt: null } })
       .catch(() => undefined);

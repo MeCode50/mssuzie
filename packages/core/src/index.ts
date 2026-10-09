@@ -15,3 +15,7 @@ export { loadLlmConfig, costUsd } from "./llm/config.js";
 export type { LlmConfig, AgentTier } from "./llm/config.js";
 export { createMockExecutor } from "./llm/mock-executor.js";
 export * from "./schemas/index.js";
+export { claimRun, touchLock, releaseRun, requeueStuckRuns, sweepExpiredTokenMaps, STUCK_AFTER_MS, MAX_CLAIMS } from "./db/queue.js";
+export type { StuckResult } from "./db/queue.js";
+export { createLogger, errorFields } from "./logger.js";
+export type { Logger, LogFields } from "./logger.js";

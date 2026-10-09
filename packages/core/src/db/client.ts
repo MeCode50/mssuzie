@@ -1,8 +1,26 @@
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../generated/prisma/client.js";
 
-export function createPrisma(connectionString: string): PrismaClient {
-  return new PrismaClient({ adapter: new PrismaPg({ connectionString }) });
+export interface CreatePrismaOptions {
+  /** Postgres schema to use (tests isolate themselves in their own schema). */
+  schema?: string;
+  /** Max pooled connections for this client. */
+  max?: number;
+}
+
+export function createPrisma(connectionString: string, options: CreatePrismaOptions = {}): PrismaClient {
+  const { schema, max } = options;
+  return new PrismaClient({
+    adapter: new PrismaPg(
+      {
+        connectionString,
+        ...(max ? { max } : {}),
+        // Raw SQL (the queue) resolves unqualified tables through search_path, so set it as well.
+        ...(schema ? { options: `-c search_path="${schema}"` } : {}),
+      },
+      schema ? { schema } : undefined,
+    ),
+  });
 }
 
 // Reuse one client per process (survives Next.js dev hot reloads).
