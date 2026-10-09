@@ -57,7 +57,7 @@ export async function startTestApp(envOver: Record<string, string> = {}): Promis
     as(cookie, path, init = {}) {
       const headers = new Headers(init.headers);
       if (cookie) headers.set("cookie", cookie);
-      if (init.method && init.method !== "GET") headers.set("origin", ORIGIN);
+      if (init.method && init.method !== "GET" && !headers.has("origin")) headers.set("origin", ORIGIN);
       return req(path, { ...init, headers });
     },
     async close() {
