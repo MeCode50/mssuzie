@@ -26,7 +26,7 @@ export function createAuth(prisma: PrismaClient, env: Env) {
     emailAndPassword: {
       enabled: true,
       disableSignUp: true,
-      minPasswordLength: 12,
+      minPasswordLength: 8,
       maxPasswordLength: 128,
     },
     // Per-IP login throttling, stored in Postgres so it holds across serverless instances.

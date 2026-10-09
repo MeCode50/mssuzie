@@ -14,7 +14,7 @@ const DAY_MS = 86_400_000;
 
 const email = z.string().email();
 const name = z.string().min(1);
-const password = z.string().min(12, "seed passwords must be at least 12 characters");
+const password = z.string().min(8, "seed passwords must be at least 8 characters");
 
 const SeedEnvSchema = z.object({
   SEED_EBUN_EMAIL: email,

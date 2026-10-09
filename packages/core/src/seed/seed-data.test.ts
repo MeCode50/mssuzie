@@ -50,6 +50,6 @@ describe("seed data", () => {
     expect(() => parseSeedEnv({})).toThrow(/SEED_EBUN_EMAIL/);
     expect(() =>
       parseSeedEnv({ SEED_EBUN_EMAIL: "a@b.co", SEED_EBUN_PASSWORD: "short" }),
-    ).toThrow(/at least 12/);
+    ).toThrow(/at least 8/);
   });
 });
