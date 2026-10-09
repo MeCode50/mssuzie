@@ -116,7 +116,7 @@ export async function createSessionRun(ctx: RequestContext, actor: Actor, input:
 }
 
 /** Load a run the actor may see, or 404 (also for someone else's run, so existence is not revealed). */
-export async function loadRunFor(ctx: RequestContext, actor: Actor, id: string) {
+export async function loadRunFor(ctx: Pick<RequestContext, "c">, actor: Actor, id: string) {
   const run = await ctx.c.prisma.run.findFirst({
     where: { id, session: { learner: learnerScope(actor) } },
     include: { session: { include: { learner: { select: { id: true, displayName: true } } } } },
@@ -139,7 +139,7 @@ export function stepView(s: StepRow) {
   };
 }
 
-export async function serializeRun(ctx: RequestContext, run: Awaited<ReturnType<typeof loadRunFor>>) {
+export async function serializeRun(ctx: Pick<RequestContext, "c">, run: Awaited<ReturnType<typeof loadRunFor>>) {
   const { prisma } = ctx.c;
   const [steps, parentUpdate, alert] = await Promise.all([
     prisma.runStep.findMany({ where: { runId: run.id }, orderBy: { seq: "asc" } }),
