@@ -58,8 +58,10 @@ function toErrorResponse(err: unknown, log: Logger): Response {
   if (err instanceof ApiError) return errorResponse(err);
   if (err instanceof ZodError) {
     const first = err.issues[0];
+    const message = first?.message ?? "The request wasn't valid";
+    // Messages we wrote as full sentences are shown as-is; terse ones get the field name for context.
     const where = first?.path.length ? ` (${first.path.join(".")})` : "";
-    return errorResponse(new ApiError(400, "validation_failed", `${first?.message ?? "The request wasn't valid"}${where}.`));
+    return errorResponse(new ApiError(400, "validation_failed", /[.!?]$/.test(message) ? message : `${message}${where}.`));
   }
   log.error("unhandled error in route", errorFields(err));
   return errorResponse(new ApiError(500, "internal_error", "Something went wrong on our side. Please try again."));

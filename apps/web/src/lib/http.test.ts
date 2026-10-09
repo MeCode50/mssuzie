@@ -71,6 +71,13 @@ describe("handle()", () => {
     expect((await res.json()).error).toEqual({ code: "validation_failed", message: "n is too small (n)." });
   });
 
+  it("shows sentence-style validation messages as written, without the field suffix", async () => {
+    const res = await handle(async ({ req: r }) => json(await readJson(r, z.object({ n: z.string().min(2, "Please enter a longer value.") }))))(
+      req("/api/x", { method: "POST", json: { n: "a" }, headers: { origin: ORIGIN } }),
+    );
+    expect((await res.json()).error.message).toBe("Please enter a longer value.");
+  });
+
   it("hides the details of unexpected errors from the client but logs them", async () => {
     const res = await handle(async () => { throw new Error("db password is hunter2"); })(req("/api/x"));
     expect(res.status).toBe(500);
