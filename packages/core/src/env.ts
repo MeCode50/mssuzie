@@ -42,6 +42,9 @@ const EnvSchema = z
     // runs that are still in flight when checking the daily spend cap.
     RUNS_PER_IP_PER_10_MIN: z.coerce.number().int().positive().default(20),
     ESTIMATED_RUN_COST_USD: z.coerce.number().nonnegative().default(0.05),
+    // Better Auth (web only). The web app refuses to start without them in production.
+    BETTER_AUTH_SECRET: z.string().min(32, "BETTER_AUTH_SECRET must be at least 32 characters").optional(),
+    BETTER_AUTH_URL: z.string().url().optional(),
     MOCK_LLM: flag,
   })
   .superRefine((env, ctx) => {
