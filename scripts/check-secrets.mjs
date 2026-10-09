@@ -12,7 +12,7 @@ const git = (...args) => {
 
 const problems = [];
 
-const ignored = new Set(git("check-ignore", ...mustBeIgnored).split("\n").filter(Boolean));
+const ignored = new Set(git("check-ignore", "--no-index", ...mustBeIgnored).split("\n").filter(Boolean));
 for (const p of mustBeIgnored) {
   if (!ignored.has(p)) problems.push(`${p} is NOT covered by .gitignore`);
 }
