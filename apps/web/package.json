@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@mssuzie/core": "workspace:*",
+    "@next/env": "16.4.0",
     "better-auth": "1.7.7",
     "next": "16.4.0",
     "react": "19.3.0",
