@@ -6,6 +6,7 @@ import {
 import { ApiError, errors } from "./errors";
 import type { RequestContext } from "./http";
 import { IDEMPOTENCY_KEY, type CreateSessionInput } from "./schemas";
+import { humanize } from "./display";
 import { learnerScope, type Actor } from "./session";
 import { summarizeStep } from "./summaries";
 
@@ -163,9 +164,10 @@ export async function serializeRun(ctx: RequestContext, run: Awaited<ReturnType<
     steps: steps.map(stepView),
     agents,
     results: {
-      analysis: AnalysisSchema.safeParse(output("session_analyst")).data ?? null,
-      monitor: MonitorSchema.safeParse(output("progress_monitor")).data ?? null,
-      plan: PlanSchema.safeParse(output("learning_planner")).data ?? null,
+      // Tokens become plain words for display; only the Privacy tab (below) shows the raw placeholders.
+      analysis: humanize(AnalysisSchema.safeParse(output("session_analyst")).data ?? null),
+      monitor: humanize(MonitorSchema.safeParse(output("progress_monitor")).data ?? null),
+      plan: humanize(PlanSchema.safeParse(output("learning_planner")).data ?? null),
       // Counts and token labels only: the originals live in the encrypted token map and never leave the server.
       privacy: guard.success ? { redactedNotes: guard.data.redactedNotes, log: guard.data.redactionLog } : null,
     },
@@ -173,7 +175,7 @@ export async function serializeRun(ctx: RequestContext, run: Awaited<ReturnType<
       ? { id: parentUpdate.id, body: parentUpdate.body, status: parentUpdate.status, approvedAt: parentUpdate.approvedAt }
       : null,
     alert: alert
-      ? { id: alert.id, severity: alert.severity, reason: alert.reason, intervention: alert.intervention, status: alert.status }
+      ? { id: alert.id, severity: alert.severity, reason: humanize(alert.reason), intervention: humanize(alert.intervention), status: alert.status }
       : null,
   };
 }
