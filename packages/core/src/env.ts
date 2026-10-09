@@ -38,6 +38,10 @@ const EnvSchema = z
     LLM_PRICE_SMALL_OUTPUT_PER_1M: price,
     DAILY_SPEND_CAP_USD: z.coerce.number().positive().default(5),
     RUNS_PER_USER_PER_DAY: z.coerce.number().int().positive().default(30),
+    // Per-IP cap on creating runs (per 10 minutes) and a cost estimate used to reserve budget for
+    // runs that are still in flight when checking the daily spend cap.
+    RUNS_PER_IP_PER_10_MIN: z.coerce.number().int().positive().default(20),
+    ESTIMATED_RUN_COST_USD: z.coerce.number().nonnegative().default(0.05),
     MOCK_LLM: flag,
   })
   .superRefine((env, ctx) => {
