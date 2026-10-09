@@ -10,6 +10,9 @@ const base = {
 describe("loadEnv", () => {
   it("applies defaults", () => {
     const env = loadEnv({ ...base });
+    expect(env.LLM_REASONING_EFFORT).toBe("low");
+    expect(env.LLM_BASE_URL).toBe("https://generativelanguage.googleapis.com/v1beta/openai/");
+    expect(env.LLM_REASONING_TOKEN_HEADROOM).toBe(2000);
     expect(env.DAILY_SPEND_CAP_USD).toBe(5);
     expect(env.RUNS_PER_USER_PER_DAY).toBe(30);
     expect(env.MOCK_LLM).toBe(false);
@@ -25,8 +28,8 @@ describe("loadEnv", () => {
   });
 
   it("treats blank values as unset", () => {
-    const env = loadEnv({ ...base, OPENAI_MODEL_MAIN: "", DAILY_SPEND_CAP_USD: "" });
-    expect(env.OPENAI_MODEL_MAIN).toBeUndefined();
+    const env = loadEnv({ ...base, LLM_MODEL_MAIN: "", DAILY_SPEND_CAP_USD: "" });
+    expect(env.LLM_MODEL_MAIN).toBeUndefined();
     expect(env.DAILY_SPEND_CAP_USD).toBe(5);
   });
 

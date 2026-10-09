@@ -121,10 +121,10 @@ describe("schemas, trends and config", () => {
 
   const envBase = { DATABASE_URL: "postgresql://u:p@h/db", ENCRYPTION_KEY: randomBytes(32).toString("base64") };
   it("loadLlmConfig: lists every missing variable in real mode", () => {
-    expect(() => loadLlmConfig(loadEnv(envBase))).toThrow(/OPENAI_API_KEY.*OPENAI_MODEL_MAIN/s);
+    expect(() => loadLlmConfig(loadEnv(envBase))).toThrow(/LLM_API_KEY.*LLM_MODEL_MAIN/s);
   });
   it("loadLlmConfig: mock mode works outside production and prices cost correctly", () => {
-    const cfg = loadLlmConfig(loadEnv({ ...envBase, MOCK_LLM: "1", OPENAI_PRICE_MAIN_INPUT_PER_1M: "2", OPENAI_PRICE_MAIN_OUTPUT_PER_1M: "8" }));
+    const cfg = loadLlmConfig(loadEnv({ ...envBase, MOCK_LLM: "1", LLM_PRICE_MAIN_INPUT_PER_1M: "2", LLM_PRICE_MAIN_OUTPUT_PER_1M: "8" }));
     expect(cfg.mock).toBe(true);
     expect(costUsd(cfg, "main", { tokensIn: 1000, tokensOut: 500 })).toBeCloseTo(0.006, 6);
     expect(costUsd(cfg, "small", { tokensIn: 1000, tokensOut: 500 })).toBe(0);

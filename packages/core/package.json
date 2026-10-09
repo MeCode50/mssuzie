@@ -23,6 +23,7 @@
     "@prisma/client": "7.10.0",
     "better-auth": "1.7.7",
     "dotenv": "18.0.7",
+    "openai": "7.32.0",
     "pg": "8.23.1",
     "zod": "4.6.5"
   },

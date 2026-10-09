@@ -8,7 +8,8 @@ export { SEED_LEARNERS, resetDemoData, seedAccounts, parseSeedEnv } from "./seed
 export * from "./agents/privacy-guard/index.js";
 export { runStructured, StructuredOutputError } from "./llm/structured.js";
 export type { LlmExecutor, LlmRequest, LlmUsage, StructuredResult } from "./llm/structured.js";
-export { createOpenAiExecutor } from "./llm/openai-executor.js";
+export { createChatCompletionsExecutor } from "./llm/chat-executor.js";
+export type { ChatExecutorOptions, ReasoningEffort } from "./llm/chat-executor.js";
 export { wrapUntrusted, UNTRUSTED_DATA_RULE } from "./llm/untrusted.js";
 export * from "./pipeline/index.js";
 export { loadLlmConfig, costUsd } from "./llm/config.js";

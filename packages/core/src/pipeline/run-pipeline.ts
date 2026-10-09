@@ -1,3 +1,4 @@
+import { LlmServiceError } from "../llm/errors.js";
 import { StructuredOutputError, type LlmUsage } from "../llm/structured.js";
 import { costUsd, type AgentTier } from "../llm/config.js";
 import {
@@ -26,7 +27,9 @@ interface StepWork<T> {
 const isoDay = (d: Date): string => d.toISOString().slice(0, 10);
 
 function describeError(err: unknown): string {
-  if (err instanceof GuardError || err instanceof StructuredOutputError) return err.message.slice(0, 600);
+  if (err instanceof GuardError || err instanceof StructuredOutputError || err instanceof LlmServiceError) {
+    return err.message.slice(0, 600);
+  }
   const message = err instanceof Error ? err.message : String(err);
   return `Unexpected error: ${message}`.slice(0, 600);
 }
