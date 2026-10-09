@@ -124,6 +124,20 @@ export async function loadRunFor(ctx: RequestContext, actor: Actor, id: string) 
   return run;
 }
 
+type StepRow = {
+  seq: number; agent: AgentName; status: string; attempt: number; error: string | null; model: string | null;
+  tokensIn: number; tokensOut: number; durationMs: number; costUsd: { toString(): string } | number; outputJson: unknown;
+};
+
+/** The browser-safe view of one run_steps row (no raw output; a plain-language summary instead). */
+export function stepView(s: StepRow) {
+  return {
+    seq: s.seq, agent: s.agent, status: s.status, attempt: s.attempt, error: s.error, model: s.model,
+    tokensIn: s.tokensIn, tokensOut: s.tokensOut, durationMs: s.durationMs, costUsd: Number(s.costUsd),
+    summary: s.status === "completed" ? summarizeStep(s.agent, s.outputJson) : null,
+  };
+}
+
 export async function serializeRun(ctx: RequestContext, run: Awaited<ReturnType<typeof loadRunFor>>) {
   const { prisma } = ctx.c;
   const [steps, parentUpdate, alert] = await Promise.all([
@@ -131,12 +145,6 @@ export async function serializeRun(ctx: RequestContext, run: Awaited<ReturnType<
     prisma.parentUpdate.findFirst({ where: { runId: run.id }, orderBy: { createdAt: "desc" } }),
     prisma.alert.findFirst({ where: { runId: run.id }, orderBy: { createdAt: "desc" } }),
   ]);
-
-  const stepView = (s: (typeof steps)[number]) => ({
-    seq: s.seq, agent: s.agent, status: s.status, attempt: s.attempt, error: s.error, model: s.model,
-    tokensIn: s.tokensIn, tokensOut: s.tokensOut, durationMs: s.durationMs, costUsd: Number(s.costUsd),
-    summary: s.status === "completed" ? summarizeStep(s.agent, s.outputJson) : null,
-  });
 
   // The latest event per agent is its current state (the log is append-only).
   const agents = Object.fromEntries(AGENTS.map((a) => {
