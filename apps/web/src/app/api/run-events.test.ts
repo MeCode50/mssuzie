@@ -103,6 +103,9 @@ describe.skipIf(!TEST_DATABASE_URL)("GET /api/runs/:id/events (real Postgres)", 
     expect(got.filter((e) => e.event === "step").map((e) => e.id)).toEqual(["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]);
     expect(got.at(-1)).toMatchObject({ event: "done", data: { status: "completed" } });
     expect(got.at(-2)).toMatchObject({ event: "run", data: { status: "completed" } });
+    const finalRun = got.at(-2)!.data as { startedAt: string; finishedAt: string; totalTokens: number };
+    expect(new Date(finalRun.startedAt).getTime()).toBeLessThanOrEqual(new Date(finalRun.finishedAt).getTime());
+    expect(finalRun.totalTokens).toBeGreaterThan(0);
   });
 
   it("resumes after Last-Event-ID or ?after= without repeating or skipping steps", async () => {

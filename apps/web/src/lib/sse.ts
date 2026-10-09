@@ -65,7 +65,7 @@ export function createEventStream(args: {
         send(encoder.encode("retry: 2000\n\n"));
         while (!stop.signal.aborted) {
           const run = await prisma.run.findUnique({
-            where: { id: runId }, select: { status: true, totalTokens: true, costUsd: true, finishedAt: true },
+            where: { id: runId }, select: { status: true, totalTokens: true, costUsd: true, startedAt: true, finishedAt: true },
           });
           if (!run) break; // the run was deleted (demo reset)
           const steps = await prisma.runStep.findMany({
@@ -76,7 +76,7 @@ export function createEventStream(args: {
             last = s.seq;
           }
           if (run.status !== lastStatus) {
-            send(frame("run", { status: run.status, totalTokens: run.totalTokens, costUsd: Number(run.costUsd), finishedAt: run.finishedAt }));
+            send(frame("run", { status: run.status, totalTokens: run.totalTokens, costUsd: Number(run.costUsd), startedAt: run.startedAt, finishedAt: run.finishedAt }));
             lastStatus = run.status;
           }
           if (steps.length === 0 && TERMINAL.has(run.status)) {
