@@ -10,7 +10,7 @@ const ORDER: Record<Status, number> = { at_risk: 0, watch: 1, on_track: 2 };
 
 const startOfToday = () => new Date(new Date().setUTCHours(0, 0, 0, 0));
 
-export async function listLearners(ctx: RequestContext, actor: Actor, status: Status | null) {
+export async function listLearners(ctx: Pick<RequestContext, "c">, actor: Actor, status: Status | null) {
   const rows = await ctx.c.prisma.learner.findMany({
     where: learnerScope(actor),
     include: {
