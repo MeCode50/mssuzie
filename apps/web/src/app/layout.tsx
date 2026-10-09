@@ -1,15 +1,21 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
+import { Nunito_Sans } from "next/font/google";
 import type { ReactNode } from "react";
 import "./globals.css";
 
+const font = Nunito_Sans({ subsets: ["latin"], variable: "--font-nunito", display: "swap" });
+
 export const metadata: Metadata = {
-  title: "MsSuzie Session Copilot",
+  title: { default: "MsSuzie Session Copilot", template: "%s · MsSuzie Copilot" },
   description: "Turn tutor session notes into progress data, a learning plan and a parent update draft.",
+  robots: { index: false, follow: false },
 };
+
+export const viewport: Viewport = { width: "device-width", initialScale: 1, themeColor: "#fbf6ee" };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" className={font.variable}>
       <body>{children}</body>
     </html>
   );

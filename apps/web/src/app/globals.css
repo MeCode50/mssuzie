@@ -1,12 +1,71 @@
 @import "tailwindcss";
 
-:root {
-  --cream: #fbf6ee;
-  --ink: #2b2118;
-  --accent: #f08a3c;
+/* MsSuzie Session Copilot design tokens. Every text/background pair below meets WCAG 2.2 AA (4.5:1);
+   --color-field meets the 3:1 requirement for form-control boundaries. */
+@theme {
+  --font-sans: var(--font-nunito), ui-sans-serif, system-ui, sans-serif;
+
+  --color-cream: #fbf6ee;
+  --color-surface: #ffffff;
+  --color-ink: #2b2118;
+  --color-muted: #6b5c50;
+  --color-line: #e9dfd2;
+  --color-field: #857463;
+
+  --color-accent: #e8793a;
+  --color-accent-strong: #b4501a;
+  --color-accent-soft: #fbe3cf;
+  --color-banner: #ffe3b8;
+
+  --color-ok: #17643f;
+  --color-ok-bg: #e3f3ea;
+  --color-warn: #7a4e00;
+  --color-warn-bg: #fff0cc;
+  --color-bad: #a8201a;
+  --color-bad-bg: #fde6e3;
+  --color-idle: #5e5348;
+  --color-idle-bg: #f1ebe2;
+
+  --radius-card: 1.25rem;
+  --shadow-card: 0 1px 2px rgb(43 33 24 / 0.06), 0 8px 24px -12px rgb(43 33 24 / 0.18);
+
+  --animate-pulse-soft: pulse-soft 1.6s ease-in-out infinite;
+  @keyframes pulse-soft {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.55; transform: scale(0.9); }
+  }
+}
+
+html {
+  background: var(--color-cream);
+  color: var(--color-ink);
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
-  background: var(--cream);
-  color: var(--ink);
+  min-height: 100dvh;
+  font-family: var(--font-sans);
+  background: var(--color-cream);
+  color: var(--color-ink);
+  line-height: 1.55;
+}
+
+/* Visible keyboard focus everywhere (WCAG 2.4.7 / 2.4.11). */
+:focus-visible {
+  outline: 3px solid var(--color-accent-strong);
+  outline-offset: 2px;
+  border-radius: 0.375rem;
+}
+
+::selection {
+  background: var(--color-accent-soft);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
