@@ -1,11 +1,11 @@
 import { randomBytes } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { decryptJson } from "../crypto/aes-gcm.js";
-import { claimRun } from "../db/queue.js";
-import { resetDemoData, seedAccounts } from "../seed/index.js";
-import { createTestDb, TEST_DATABASE_URL, type TestDb } from "../testing/test-db.js";
-import { createRun, executeRun, LockLostError, TOKEN_MAP_RETENTION_DAYS } from "./execute-run.js";
-import { llmConfig } from "./test-fixtures.js";
+import { decryptJson } from "../crypto/aes-gcm";
+import { claimRun } from "../db/queue";
+import { resetDemoData, seedAccounts } from "../seed/index";
+import { createTestDb, TEST_DATABASE_URL, type TestDb } from "../testing/test-db";
+import { createRun, executeRun, LockLostError, TOKEN_MAP_RETENTION_DAYS } from "./execute-run";
+import { llmConfig } from "./test-fixtures";
 
 const KEY = randomBytes(32).toString("base64");
 const seedEnv = {

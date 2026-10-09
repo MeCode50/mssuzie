@@ -1,15 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { checkPlan } from "./learning-planner.js";
-import { checkReport } from "./parent-reporter.js";
-import { checkMonitor } from "./progress-monitor.js";
-import { checkAnalysis } from "./session-analyst.js";
-import { AnalysisSchema, MonitorSchema, PlanSchema, ReportSchema, type Analysis, type LearningPlan } from "../schemas/index.js";
-import { assembleTemplate, finalizeParentUpdate } from "../pipeline/parent-update.js";
-import { buildSkillTrends } from "../pipeline/trends.js";
-import { costUsd, loadLlmConfig } from "../llm/config.js";
-import { loadEnv } from "../env.js";
+import { checkPlan } from "./learning-planner";
+import { checkReport } from "./parent-reporter";
+import { checkMonitor } from "./progress-monitor";
+import { checkAnalysis } from "./session-analyst";
+import { AnalysisSchema, MonitorSchema, PlanSchema, ReportSchema, type Analysis, type LearningPlan } from "../schemas/index";
+import { assembleTemplate, finalizeParentUpdate } from "../pipeline/parent-update";
+import { buildSkillTrends } from "../pipeline/trends";
+import { costUsd, loadLlmConfig } from "../llm/config";
+import { loadEnv } from "../env";
 import { randomBytes } from "node:crypto";
-import { amaraKnown } from "./privacy-guard/test-helpers.js";
+import { amaraKnown } from "./privacy-guard/test-helpers";
 
 const NOTES = "She got 3a + 2a quickly but mixed up 3a + 2b at first, then self-corrected. Confidence clearly up today.";
 const analysis = (over: Partial<Analysis["skills"][number]> = {}): Analysis => ({

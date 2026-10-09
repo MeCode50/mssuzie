@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
-import { FindingsOutputSchema } from "../agents/privacy-guard/llm-pass.js";
-import { runStructured, StructuredOutputError, type LlmExecutor } from "./structured.js";
-import { UNTRUSTED_DATA_RULE, wrapUntrusted } from "./untrusted.js";
+import { FindingsOutputSchema } from "../agents/privacy-guard/llm-pass";
+import { runStructured, StructuredOutputError, type LlmExecutor } from "./structured";
+import { UNTRUSTED_DATA_RULE, wrapUntrusted } from "./untrusted";
 
 const schema = z.object({ status: z.enum(["on_track", "watch", "at_risk"]), score: z.number().min(0).max(1) });
 const base = { name: "test_agent", instructions: "x", model: "m", input: "hello", maxTokens: 100, schema };

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { LlmUsage } from "../../llm/structured.js";
+import type { LlmUsage } from "../../llm/structured";
 
 export const TOKEN_CATEGORIES = [
   "CHILD", "GUARDIAN", "TUTOR", "SCHOOL", "CITY",

@@ -2,8 +2,8 @@ import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { z } from "zod";
-import { createChatCompletionsExecutor } from "./chat-executor.js";
-import { runStructured } from "./structured.js";
+import { createChatCompletionsExecutor } from "./chat-executor";
+import { runStructured } from "./structured";
 
 const schema = z.object({ findings: z.array(z.string()) });
 

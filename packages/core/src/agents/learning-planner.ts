@@ -1,8 +1,8 @@
-import { UNTRUSTED_DATA_RULE, wrapUntrusted } from "../llm/untrusted.js";
-import type { LlmConfig } from "../llm/config.js";
-import { PlanSchema, type Analysis, type LearningPlan } from "../schemas/index.js";
-import { callAgent, MAX_TOKENS, type AgentStepResult } from "./shared/call.js";
-import type { LearnerProfile } from "./session-analyst.js";
+import { UNTRUSTED_DATA_RULE, wrapUntrusted } from "../llm/untrusted";
+import type { LlmConfig } from "../llm/config";
+import { PlanSchema, type Analysis, type LearningPlan } from "../schemas/index";
+import { callAgent, MAX_TOKENS, type AgentStepResult } from "./shared/call";
+import type { LearnerProfile } from "./session-analyst";
 
 export interface PlannerEvent {
   type: "exam" | "assignment";

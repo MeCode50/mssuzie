@@ -1,5 +1,5 @@
-import type { DetectionResult, Finding, PiiDetector } from "./llm-pass.js";
-import type { KnownEntities } from "./types.js";
+import type { DetectionResult, Finding, PiiDetector } from "./llm-pass";
+import type { KnownEntities } from "./types";
 
 export const usage = { model: "test-small", tokensIn: 10, tokensOut: 5, durationMs: 1, attempts: 1 };
 

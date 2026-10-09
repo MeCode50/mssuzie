@@ -1,5 +1,5 @@
-import type { SkillTrend } from "../agents/progress-monitor.js";
-import type { SkillPoint } from "./types.js";
+import type { SkillTrend } from "../agents/progress-monitor";
+import type { SkillPoint } from "./types";
 
 /** Deterministic trend facts for the Monitor: oldest to newest, "sessionsAgo" relative to now. */
 export function buildSkillTrends(history: { skill: string; points: SkillPoint[] }[]): SkillTrend[] {

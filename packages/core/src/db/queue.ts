@@ -1,5 +1,5 @@
-import { Prisma } from "../generated/prisma/client.js";
-import type { PrismaClient } from "./client.js";
+import { Prisma } from "../generated/prisma/client";
+import type { PrismaClient } from "./client";
 
 /** A run locked longer than this without a heartbeat is considered abandoned. */
 export const STUCK_AFTER_MS = 5 * 60_000;

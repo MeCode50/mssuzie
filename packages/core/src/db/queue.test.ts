@@ -1,8 +1,8 @@
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { createTestDb, TEST_DATABASE_URL, type TestDb } from "../testing/test-db.js";
-import { claimRun, releaseRun, requeueStuckRuns, sweepExpiredTokenMaps, touchLock } from "./queue.js";
-import type { PrismaClient } from "./client.js";
+import { createTestDb, TEST_DATABASE_URL, type TestDb } from "../testing/test-db";
+import { claimRun, releaseRun, requeueStuckRuns, sweepExpiredTokenMaps, touchLock } from "./queue";
+import type { PrismaClient } from "./client";
 
 describe.skipIf(!TEST_DATABASE_URL)("queue (real Postgres)", () => {
   let db: TestDb;

@@ -1,9 +1,9 @@
 import { config as loadDotenv } from "dotenv";
-import { getPrisma } from "../db/client.js";
-import { loadEnv } from "../env.js";
-import { loadLlmConfig } from "../llm/config.js";
-import { createRun, executeRun } from "../pipeline/execute-run.js";
-import type { StepEvent } from "../pipeline/types.js";
+import { getPrisma } from "../db/client";
+import { loadEnv } from "../env";
+import { loadLlmConfig } from "../llm/config";
+import { createRun, executeRun } from "../pipeline/execute-run";
+import type { StepEvent } from "../pipeline/types";
 
 loadDotenv({ path: "../../.env", quiet: true });
 

@@ -1,11 +1,11 @@
 import { randomBytes } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import { decryptJson, encryptJson } from "../../crypto/aes-gcm.js";
-import { SEED_LEARNERS } from "../../seed/index.js";
-import { detokenize, findResidualTokens } from "./detokenize.js";
-import { createFieldRedactor, runPrivacyGuard } from "./guard.js";
-import { amaraKnown, detectorReturning, noFindings, spyDetector } from "./test-helpers.js";
-import { GuardError, GuardOutputSchema, MAX_NOTES_CHARS, TokenMapSchema } from "./types.js";
+import { decryptJson, encryptJson } from "../../crypto/aes-gcm";
+import { SEED_LEARNERS } from "../../seed/index";
+import { detokenize, findResidualTokens } from "./detokenize";
+import { createFieldRedactor, runPrivacyGuard } from "./guard";
+import { amaraKnown, detectorReturning, noFindings, spyDetector } from "./test-helpers";
+import { GuardError, GuardOutputSchema, MAX_NOTES_CHARS, TokenMapSchema } from "./types";
 
 const redact = async (notes: string, known = amaraKnown) =>
   runPrivacyGuard({ notes, known, detector: noFindings });

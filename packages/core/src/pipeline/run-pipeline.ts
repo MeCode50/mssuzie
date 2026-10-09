@@ -1,18 +1,18 @@
-import { LlmServiceError } from "../llm/errors.js";
-import { StructuredOutputError, type LlmUsage } from "../llm/structured.js";
-import { costUsd, type AgentTier } from "../llm/config.js";
+import { LlmServiceError } from "../llm/errors";
+import { StructuredOutputError, type LlmUsage } from "../llm/structured";
+import { costUsd, type AgentTier } from "../llm/config";
 import {
   createFieldRedactor, GuardError, runPrivacyGuard, createLlmPiiDetector,
   type TokenMap,
-} from "../agents/privacy-guard/index.js";
-import { runLearningPlanner } from "../agents/learning-planner.js";
-import { runParentReporter } from "../agents/parent-reporter.js";
-import { runProgressMonitor } from "../agents/progress-monitor.js";
-import { runSessionAnalyst } from "../agents/session-analyst.js";
-import type { Analysis, LearningPlan, MonitorResult, ParentReport } from "../schemas/index.js";
-import { assembleTemplate, finalizeParentUpdate } from "./parent-update.js";
-import { buildSkillTrends } from "./trends.js";
-import type { AgentName, PipelineDeps, PipelineInput, PipelineResult } from "./types.js";
+} from "../agents/privacy-guard/index";
+import { runLearningPlanner } from "../agents/learning-planner";
+import { runParentReporter } from "../agents/parent-reporter";
+import { runProgressMonitor } from "../agents/progress-monitor";
+import { runSessionAnalyst } from "../agents/session-analyst";
+import type { Analysis, LearningPlan, MonitorResult, ParentReport } from "../schemas/index";
+import { assembleTemplate, finalizeParentUpdate } from "./parent-update";
+import { buildSkillTrends } from "./trends";
+import type { AgentName, PipelineDeps, PipelineInput, PipelineResult } from "./types";
 
 type StepOutcome<T> = { ok: true; value: T } | { ok: false; error: string };
 

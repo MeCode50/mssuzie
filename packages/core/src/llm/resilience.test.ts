@@ -2,9 +2,9 @@ import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { z } from "zod";
-import { createChatCompletionsExecutor, type ChatExecutorOptions } from "./chat-executor.js";
-import { LlmServiceError } from "./errors.js";
-import { Throttle } from "./throttle.js";
+import { createChatCompletionsExecutor, type ChatExecutorOptions } from "./chat-executor";
+import { LlmServiceError } from "./errors";
+import { Throttle } from "./throttle";
 
 const schema = z.object({ ok: z.boolean() });
 const request = { name: "t", instructions: "x", model: "m", input: "hi", maxTokens: 100, schema };

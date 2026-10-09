@@ -1,8 +1,8 @@
-import type { AgentName } from "../generated/prisma/enums.js";
-import type { KnownEntities, TokenMap } from "../agents/privacy-guard/index.js";
-import type { LearnerProfile } from "../agents/session-analyst.js";
-import type { MonitorResult, Analysis, LearningPlan, ParentReport } from "../schemas/index.js";
-import type { LlmConfig } from "../llm/config.js";
+import type { AgentName } from "../generated/prisma/enums";
+import type { KnownEntities, TokenMap } from "../agents/privacy-guard/index";
+import type { LearnerProfile } from "../agents/session-analyst";
+import type { MonitorResult, Analysis, LearningPlan, ParentReport } from "../schemas/index";
+import type { LlmConfig } from "../llm/config";
 
 export type { AgentName };
 export const AGENT_ORDER: readonly AgentName[] = [

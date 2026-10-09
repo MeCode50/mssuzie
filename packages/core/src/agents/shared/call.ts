@@ -1,6 +1,6 @@
 import type { z } from "zod";
-import { costUsd, type AgentTier, type LlmConfig } from "../../llm/config.js";
-import { runStructured, type LlmUsage } from "../../llm/structured.js";
+import { costUsd, type AgentTier, type LlmConfig } from "../../llm/config";
+import { runStructured, type LlmUsage } from "../../llm/structured";
 
 export interface AgentStepResult<T> {
   output: T;

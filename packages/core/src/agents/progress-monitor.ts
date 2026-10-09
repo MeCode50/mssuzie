@@ -1,7 +1,7 @@
-import { UNTRUSTED_DATA_RULE, wrapUntrusted } from "../llm/untrusted.js";
-import type { LlmConfig } from "../llm/config.js";
-import { MonitorSchema, type Analysis, type MonitorResult } from "../schemas/index.js";
-import { callAgent, MAX_TOKENS, type AgentStepResult } from "./shared/call.js";
+import { UNTRUSTED_DATA_RULE, wrapUntrusted } from "../llm/untrusted";
+import type { LlmConfig } from "../llm/config";
+import { MonitorSchema, type Analysis, type MonitorResult } from "../schemas/index";
+import { callAgent, MAX_TOKENS, type AgentStepResult } from "./shared/call";
 
 export interface SkillTrend {
   skill: string;

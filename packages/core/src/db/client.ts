@@ -1,5 +1,5 @@
 import { PrismaPg } from "@prisma/adapter-pg";
-import { PrismaClient } from "../generated/prisma/client.js";
+import { PrismaClient } from "../generated/prisma/client";
 
 export interface CreatePrismaOptions {
   /** Postgres schema to use (tests isolate themselves in their own schema). */

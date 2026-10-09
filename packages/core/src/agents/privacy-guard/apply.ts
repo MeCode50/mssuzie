@@ -1,6 +1,6 @@
-import { overlaps, type Span } from "./matching.js";
-import type { TokenRegistry } from "./registry.js";
-import type { TokenCategory } from "./types.js";
+import { overlaps, type Span } from "./matching";
+import type { TokenRegistry } from "./registry";
+import type { TokenCategory } from "./types";
 
 export interface Match extends Span {
   priority: number;

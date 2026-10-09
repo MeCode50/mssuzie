@@ -1,5 +1,5 @@
-import { Prisma } from "../generated/prisma/client.js";
-import type { PrismaClient } from "../db/client.js";
+import { Prisma } from "../generated/prisma/client";
+import type { PrismaClient } from "../db/client";
 
 export interface RateLimitResult {
   allowed: boolean;

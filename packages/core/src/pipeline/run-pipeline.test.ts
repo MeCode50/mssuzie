@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { createMockExecutor } from "../llm/mock-executor.js";
-import type { LlmExecutor } from "../llm/structured.js";
-import { checkPlan } from "../agents/learning-planner.js";
-import { amaraInput, collectingSink, leoInput, llmConfig } from "./test-fixtures.js";
-import { runPipeline } from "./run-pipeline.js";
-import type { StepEvent } from "./types.js";
+import { createMockExecutor } from "../llm/mock-executor";
+import type { LlmExecutor } from "../llm/structured";
+import { checkPlan } from "../agents/learning-planner";
+import { amaraInput, collectingSink, leoInput, llmConfig } from "./test-fixtures";
+import { runPipeline } from "./run-pipeline";
+import type { StepEvent } from "./types";
 
 const statusOf = (events: StepEvent[], agent: string) =>
   events.filter((e) => e.agent === agent).map((e) => e.status);

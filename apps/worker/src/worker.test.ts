@@ -4,7 +4,7 @@ import {
   createLogger, createMockExecutor, resetDemoData, seedAccounts, type ExecuteDeps, type LlmConfig, type RunSummary,
 } from "@mssuzie/core";
 import { createTestDb, TEST_DATABASE_URL, type TestDb } from "@mssuzie/core/testing";
-import { Worker, type WorkerOptions } from "./worker.js";
+import { Worker, type WorkerOptions } from "./worker";
 
 const KEY = randomBytes(32).toString("base64");
 const llm: LlmConfig = {

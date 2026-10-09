@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseSeedEnv, SEED_LEARNERS } from "./index.js";
+import { parseSeedEnv, SEED_LEARNERS } from "./index";
 
 describe("seed data", () => {
   it("has 5 learners aged 7-15 with plans of 2, 3 and 4 hours", () => {

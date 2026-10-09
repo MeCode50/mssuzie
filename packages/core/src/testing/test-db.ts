@@ -2,7 +2,7 @@ import { randomBytes } from "node:crypto";
 import { readdirSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import pg from "pg";
-import { createPrisma, type PrismaClient } from "../db/client.js";
+import { createPrisma, type PrismaClient } from "../db/client";
 
 /** Set by `pnpm test:db`. DB-backed tests skip themselves when it is absent. */
 export const TEST_DATABASE_URL = process.env.TEST_DATABASE_URL;

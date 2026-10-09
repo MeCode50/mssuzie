@@ -1,14 +1,14 @@
 import { randomUUID } from "node:crypto";
 import { hashPassword } from "better-auth/crypto";
 import { z } from "zod";
-import { encrypt } from "../crypto/aes-gcm.js";
-import type { PrismaClient } from "../db/client.js";
-import { amara, leo } from "./learners-a.js";
-import { priya, tomas, zainab } from "./learners-b.js";
-import type { SeedLearner } from "./types.js";
+import { encrypt } from "../crypto/aes-gcm";
+import type { PrismaClient } from "../db/client";
+import { amara, leo } from "./learners-a";
+import { priya, tomas, zainab } from "./learners-b";
+import type { SeedLearner } from "./types";
 
 export const SEED_LEARNERS: readonly SeedLearner[] = [amara, leo, priya, tomas, zainab];
-export type { SeedLearner } from "./types.js";
+export type { SeedLearner } from "./types";
 
 const DAY_MS = 86_400_000;
 

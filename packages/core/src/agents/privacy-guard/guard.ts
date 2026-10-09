@@ -1,12 +1,12 @@
-import type { LlmUsage } from "../../llm/structured.js";
-import { applyFindings, type PiiDetector } from "./llm-pass.js";
-import { findResidualKnownPii, neutraliseTokens, redactWithCode } from "./code-pass.js";
-import { TokenRegistry } from "./registry.js";
-import { preregisterKnown } from "./targets.js";
+import type { LlmUsage } from "../../llm/structured";
+import { applyFindings, type PiiDetector } from "./llm-pass";
+import { findResidualKnownPii, neutraliseTokens, redactWithCode } from "./code-pass";
+import { TokenRegistry } from "./registry";
+import { preregisterKnown } from "./targets";
 import {
   GuardError, GuardOutputSchema, MAX_NOTES_CHARS,
   type GuardOutput, type KnownEntities, type TokenMap,
-} from "./types.js";
+} from "./types";
 
 export interface GuardResult {
   /** Safe to store in run_steps.output_json and to send to models. */

@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import { decrypt, decryptJson, encrypt, encryptJson } from "./aes-gcm.js";
+import { decrypt, decryptJson, encrypt, encryptJson } from "./aes-gcm";
 
 const key = randomBytes(32).toString("base64");
 

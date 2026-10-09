@@ -1,4 +1,4 @@
-import type { SeedLearner } from "./types.js";
+import type { SeedLearner } from "./types";
 
 export const priya: SeedLearner = {
   displayName: "Priya Nair",

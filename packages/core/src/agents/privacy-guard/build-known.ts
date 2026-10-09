@@ -1,4 +1,4 @@
-import type { KnownEntities } from "./types.js";
+import type { KnownEntities } from "./types";
 
 /** Build the redaction dictionary from DB records. Used locally only; never sent to a model. */
 export function buildKnownEntities(src: {

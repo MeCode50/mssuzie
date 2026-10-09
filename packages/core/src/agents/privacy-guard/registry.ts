@@ -1,4 +1,4 @@
-import type { RedactionLogEntry, TokenCategory, TokenMap } from "./types.js";
+import type { RedactionLogEntry, TokenCategory, TokenMap } from "./types";
 
 interface LogState {
   category: TokenCategory;

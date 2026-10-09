@@ -1,8 +1,8 @@
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { createTestDb, TEST_DATABASE_URL, type TestDb } from "../testing/test-db.js";
-import { consumeRateLimit, pruneRateLimits } from "./rate-limit.js";
-import { countUserRuns, DAY_MS, getSpendStatus, utcDayStart } from "./spend.js";
+import { createTestDb, TEST_DATABASE_URL, type TestDb } from "../testing/test-db";
+import { consumeRateLimit, pruneRateLimits } from "./rate-limit";
+import { countUserRuns, DAY_MS, getSpendStatus, utcDayStart } from "./spend";
 
 describe("utcDayStart", () => {
   it("returns UTC midnight", () => {

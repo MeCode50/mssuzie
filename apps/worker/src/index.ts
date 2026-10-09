@@ -1,6 +1,6 @@
 import { config as loadDotenv } from "dotenv";
 import { createLogger, errorFields, getPrisma, loadEnv, loadLlmConfig } from "@mssuzie/core";
-import { Worker } from "./worker.js";
+import { Worker } from "./worker";
 
 loadDotenv({ path: "../../.env", quiet: true });
 

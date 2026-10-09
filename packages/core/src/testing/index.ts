@@ -1,2 +1,2 @@
-export { createTestDb, TEST_DATABASE_URL } from "./test-db.js";
-export type { TestDb } from "./test-db.js";
+export { createTestDb, TEST_DATABASE_URL } from "./test-db";
+export type { TestDb } from "./test-db";

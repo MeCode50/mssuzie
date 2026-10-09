@@ -1,8 +1,8 @@
 import {
   detokenize, findResidualTokens, findUnexpectedPii,
   type KnownEntities, type TokenMap,
-} from "../agents/privacy-guard/index.js";
-import type { ParentReport } from "../schemas/index.js";
+} from "../agents/privacy-guard/index";
+import type { ParentReport } from "../schemas/index";
 
 /** Tokenised draft; the greeting and sign-off are fixed text, not model output. */
 export function assembleTemplate(r: ParentReport): string {

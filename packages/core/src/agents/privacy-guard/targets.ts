@@ -1,5 +1,5 @@
-import type { TokenRegistry } from "./registry.js";
-import type { KnownEntities, TokenCategory } from "./types.js";
+import type { TokenRegistry } from "./registry";
+import type { KnownEntities, TokenCategory } from "./types";
 
 export interface Target {
   surface: string;

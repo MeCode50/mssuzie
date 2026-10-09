@@ -1,7 +1,7 @@
-import { UNTRUSTED_DATA_RULE, wrapUntrusted } from "../llm/untrusted.js";
-import type { LlmConfig } from "../llm/config.js";
-import { AnalysisSchema, type Analysis } from "../schemas/index.js";
-import { callAgent, fold, MAX_TOKENS, quoteAppearsIn, type AgentStepResult } from "./shared/call.js";
+import { UNTRUSTED_DATA_RULE, wrapUntrusted } from "../llm/untrusted";
+import type { LlmConfig } from "../llm/config";
+import { AnalysisSchema, type Analysis } from "../schemas/index";
+import { callAgent, fold, MAX_TOKENS, quoteAppearsIn, type AgentStepResult } from "./shared/call";
 
 export interface LearnerProfile {
   age: number;

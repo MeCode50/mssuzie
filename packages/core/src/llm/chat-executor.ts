@@ -2,9 +2,9 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import OpenAI from "openai";
 import { z } from "zod";
 import { Agent, ModelBehaviorError, OpenAIChatCompletionsModel, Runner } from "@openai/agents";
-import { findServiceError, kindForStatus, LlmServiceError } from "./errors.js";
-import type { LlmExecutor } from "./structured.js";
-import { Throttle } from "./throttle.js";
+import { findServiceError, kindForStatus, LlmServiceError } from "./errors";
+import type { LlmExecutor } from "./structured";
+import { Throttle } from "./throttle";
 
 export const REASONING_EFFORTS = ["none", "minimal", "low", "medium", "high"] as const;
 export type ReasoningEffort = (typeof REASONING_EFFORTS)[number];

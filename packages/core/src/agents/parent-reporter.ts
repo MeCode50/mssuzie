@@ -1,7 +1,7 @@
-import { UNTRUSTED_DATA_RULE, wrapUntrusted } from "../llm/untrusted.js";
-import type { LlmConfig } from "../llm/config.js";
-import { ReportSchema, type Analysis, type LearningPlan, type MonitorResult, type ParentReport } from "../schemas/index.js";
-import { callAgent, fold, MAX_TOKENS, type AgentStepResult } from "./shared/call.js";
+import { UNTRUSTED_DATA_RULE, wrapUntrusted } from "../llm/untrusted";
+import type { LlmConfig } from "../llm/config";
+import { ReportSchema, type Analysis, type LearningPlan, type MonitorResult, type ParentReport } from "../schemas/index";
+import { callAgent, fold, MAX_TOKENS, type AgentStepResult } from "./shared/call";
 
 export interface ReporterInput {
   analysis: Analysis;

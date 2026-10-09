@@ -1,7 +1,7 @@
 import { config as loadEnv } from "dotenv";
-import { createPrisma } from "../src/db/client.js";
-import { loadEnv as loadCoreEnv } from "../src/env.js";
-import { resetDemoData, seedAccounts } from "../src/seed/index.js";
+import { createPrisma } from "../src/db/client";
+import { loadEnv as loadCoreEnv } from "../src/env";
+import { resetDemoData, seedAccounts } from "../src/seed/index";
 
 loadEnv({ path: "../../.env", quiet: true });
 

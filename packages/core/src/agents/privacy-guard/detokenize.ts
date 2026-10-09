@@ -1,4 +1,4 @@
-import { TOKEN_PATTERN, type TokenCategory, type TokenMap } from "./types.js";
+import { TOKEN_PATTERN, type TokenCategory, type TokenMap } from "./types";
 
 /** Categories that may be put back into the parent-facing update. Contacts and schools never are. */
 export const REINSERTABLE_CATEGORIES: readonly TokenCategory[] = ["CHILD", "GUARDIAN", "TUTOR"];

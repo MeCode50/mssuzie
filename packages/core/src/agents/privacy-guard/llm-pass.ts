@@ -1,10 +1,10 @@
 import { z } from "zod";
-import { UNTRUSTED_DATA_RULE, wrapUntrusted } from "../../llm/untrusted.js";
-import { runStructured, type LlmExecutor, type LlmUsage } from "../../llm/structured.js";
-import { applyMatches, type Match } from "./apply.js";
-import { fold, findAll, overlaps, termRegex, tokenSpans } from "./matching.js";
-import type { TokenRegistry } from "./registry.js";
-import type { TokenCategory } from "./types.js";
+import { UNTRUSTED_DATA_RULE, wrapUntrusted } from "../../llm/untrusted";
+import { runStructured, type LlmExecutor, type LlmUsage } from "../../llm/structured";
+import { applyMatches, type Match } from "./apply";
+import { fold, findAll, overlaps, termRegex, tokenSpans } from "./matching";
+import type { TokenRegistry } from "./registry";
+import type { TokenCategory } from "./types";
 
 export const FindingSchema = z.object({
   text: z.string(),

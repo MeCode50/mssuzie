@@ -1,7 +1,7 @@
-import type { Env } from "../env.js";
-import { createMockExecutor } from "./mock-executor.js";
-import { createChatCompletionsExecutor } from "./chat-executor.js";
-import type { LlmExecutor, LlmUsage } from "./structured.js";
+import type { Env } from "../env";
+import { createMockExecutor } from "./mock-executor";
+import { createChatCompletionsExecutor } from "./chat-executor";
+import type { LlmExecutor, LlmUsage } from "./structured";
 
 export type AgentTier = "main" | "small";
 

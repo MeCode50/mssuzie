@@ -1,8 +1,8 @@
-import type { LlmConfig } from "../llm/config.js";
-import { createMockExecutor, type MockOptions } from "../llm/mock-executor.js";
-import type { LlmExecutor } from "../llm/structured.js";
-import { SEED_LEARNERS } from "../seed/index.js";
-import type { PipelineInput, StepEvent, StepSink } from "./types.js";
+import type { LlmConfig } from "../llm/config";
+import { createMockExecutor, type MockOptions } from "../llm/mock-executor";
+import type { LlmExecutor } from "../llm/structured";
+import { SEED_LEARNERS } from "../seed/index";
+import type { PipelineInput, StepEvent, StepSink } from "./types";
 
 const amara = SEED_LEARNERS.find((l) => l.displayName === "Amara Okafor")!;
 const leo = SEED_LEARNERS.find((l) => l.displayName === "Leo Hartmann")!;

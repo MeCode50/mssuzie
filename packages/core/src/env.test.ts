@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import { loadEnv } from "./env.js";
+import { loadEnv } from "./env";
 
 const base = {
   DATABASE_URL: "postgresql://u:p@localhost:5432/db",

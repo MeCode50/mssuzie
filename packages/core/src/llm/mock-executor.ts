@@ -1,4 +1,4 @@
-import type { LlmExecutor, LlmRawResult, LlmRequest } from "./structured.js";
+import type { LlmExecutor, LlmRawResult, LlmRequest } from "./structured";
 
 export interface MockOptions {
   /** Artificial latency per call, so a UI can show agents running. */

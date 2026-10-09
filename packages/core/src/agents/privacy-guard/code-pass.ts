@@ -1,8 +1,8 @@
-import { applyMatches, type Match } from "./apply.js";
-import { EMAIL_RE, fold, findAll, findPhones, overlaps, termRegex, tokenSpans } from "./matching.js";
-import type { TokenRegistry } from "./registry.js";
-import { buildTargets } from "./targets.js";
-import { TOKEN_PATTERN, type KnownEntities } from "./types.js";
+import { applyMatches, type Match } from "./apply";
+import { EMAIL_RE, fold, findAll, findPhones, overlaps, termRegex, tokenSpans } from "./matching";
+import type { TokenRegistry } from "./registry";
+import { buildTargets } from "./targets";
+import { TOKEN_PATTERN, type KnownEntities } from "./types";
 
 /** Stop notes from smuggling in fake tokens that a later restore step might trust. */
 export function neutraliseTokens(text: string): string {
