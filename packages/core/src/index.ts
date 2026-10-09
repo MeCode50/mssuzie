@@ -5,3 +5,8 @@ export { loadEnv } from "./env.js";
 export type { Env } from "./env.js";
 export { encrypt, decrypt, encryptJson, decryptJson } from "./crypto/aes-gcm.js";
 export { SEED_LEARNERS, resetDemoData, seedAccounts, parseSeedEnv } from "./seed/index.js";
+export * from "./agents/privacy-guard/index.js";
+export { runStructured, StructuredOutputError } from "./llm/structured.js";
+export type { LlmExecutor, LlmRequest, LlmUsage, StructuredResult } from "./llm/structured.js";
+export { createOpenAiExecutor } from "./llm/openai-executor.js";
+export { wrapUntrusted, UNTRUSTED_DATA_RULE } from "./llm/untrusted.js";
