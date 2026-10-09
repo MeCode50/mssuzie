@@ -16,3 +16,7 @@ packages/core/eval-results/
 .claude/audits/
 .claude/sessions/
 .claude/.local/
+
+# Next.js generated
+next-env.d.ts
+*.tsbuildinfo
