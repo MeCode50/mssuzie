@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { LlmUsage } from "../../llm/structured.js";
 
 export const TOKEN_CATEGORIES = [
   "CHILD", "GUARDIAN", "TUTOR", "SCHOOL", "CITY",
@@ -45,6 +46,7 @@ export class GuardError extends Error {
   constructor(
     readonly code: "NOTES_EMPTY" | "NOTES_TOO_LONG" | "LLM_PASS_FAILED" | "RESIDUAL_PII",
     message: string,
+    readonly usage?: LlmUsage,
   ) {
     super(message);
     this.name = "GuardError";

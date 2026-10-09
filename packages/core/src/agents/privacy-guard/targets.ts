@@ -1,3 +1,4 @@
+import type { TokenRegistry } from "./registry.js";
 import type { KnownEntities, TokenCategory } from "./types.js";
 
 export interface Target {
@@ -54,4 +55,18 @@ export function buildTargets(known: KnownEntities): Target[] {
     seen.add(key);
     return true;
   });
+}
+
+/**
+ * Hand out tokens for every known entity up front, by record order: the child is always [CHILD_1],
+ * the first guardian [GUARDIAN_1], and so on, whether or not the notes mention them. Downstream
+ * agents can then rely on these tokens, and every field redacted for a run numbers them the same.
+ */
+export function preregisterKnown(registry: TokenRegistry, known: KnownEntities): void {
+  const first = (full: string) => full.trim().split(/\s+/)[0] ?? full;
+  registry.tokenFor("CHILD", "child", first(known.learnerName), "code");
+  known.guardianNames.forEach((n, i) => registry.tokenFor("GUARDIAN", `guardian:${i}`, first(n), "code"));
+  registry.tokenFor("TUTOR", "tutor", first(known.tutorName), "code");
+  known.schools.forEach((s, i) => registry.tokenFor("SCHOOL", `school:${i}`, s.trim(), "code"));
+  known.cities.forEach((c, i) => registry.tokenFor("CITY", `city:${i}`, c.trim(), "code"));
 }

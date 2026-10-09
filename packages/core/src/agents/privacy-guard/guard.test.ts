@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { decryptJson, encryptJson } from "../../crypto/aes-gcm.js";
 import { SEED_LEARNERS } from "../../seed/index.js";
 import { detokenize, findResidualTokens } from "./detokenize.js";
-import { runPrivacyGuard } from "./guard.js";
+import { createFieldRedactor, runPrivacyGuard } from "./guard.js";
 import { amaraKnown, detectorReturning, noFindings, spyDetector } from "./test-helpers.js";
 import { GuardError, GuardOutputSchema, MAX_NOTES_CHARS, TokenMapSchema } from "./types.js";
 
@@ -45,9 +45,23 @@ describe("code pass: names", () => {
     expect(r.output.redactedNotes).toBe("At [SCHOOL_1] in [CITY_1]; the [SCHOOL_1] teacher agreed.");
   });
 
-  it("numbers tokens by first appearance and reuses them for the same entity", async () => {
+  it("gives each known entity one stable token, reused for every mention", async () => {
     const r = await redact("Leeds then Oakfield Academy then Leeds again.");
     expect(r.output.redactedNotes).toBe("[CITY_1] then [SCHOOL_1] then [CITY_1] again.");
+  });
+
+  it("pre-registers people so [CHILD_1] and [GUARDIAN_1] exist even when the notes never name them", async () => {
+    const r = await redact("A quiet session on fractions.");
+    expect(r.tokenMap["[CHILD_1]"]).toBe("Amara");
+    expect(r.tokenMap["[GUARDIAN_1]"]).toBe("Ngozi");
+    expect(r.tokenMap["[TUTOR_1]"]).toBe("Daniel");
+    expect(r.output.redactionLog).toEqual([]);
+  });
+
+  it("numbers guardians by record order, not by who is mentioned first", async () => {
+    const known = { ...amaraKnown, guardianNames: ["Ngozi Okafor", "Chidi Okafor"] };
+    const r = await redact("Chidi called before Ngozi did.", known);
+    expect(r.output.redactedNotes).toBe("[GUARDIAN_2] called before [GUARDIAN_1] did.");
   });
 });
 
@@ -217,5 +231,25 @@ describe("realistic seed notes", () => {
     });
     expect(r.output.redactedNotes).not.toContain("priya.nair.revision");
     expect(r.output.redactedNotes).toMatch(/\[EMAIL_\d\]/);
+  });
+});
+
+describe("findings hygiene and field redaction", () => {
+  it("ignores overlong or one-character findings", async () => {
+    const r = await runPrivacyGuard({
+      notes: "Amara did fractions and x marks the spot.",
+      known: amaraKnown,
+      detector: detectorReturning([
+        { text: "x", category: "other" },
+        { text: "y".repeat(81), category: "other" },
+      ]),
+    });
+    expect(r.output.redactedNotes).toBe("[CHILD_1] did fractions and x marks the spot.");
+    expect(r.output.llmFindingsIgnored).toBe(2);
+  });
+
+  it("redacts structured fields with the same stable tokens", () => {
+    const redactField = createFieldRedactor(amaraKnown);
+    expect(redactField("Oakfield Academy maths test with Amara")).toBe("[SCHOOL_1] maths test with [CHILD_1]");
   });
 });

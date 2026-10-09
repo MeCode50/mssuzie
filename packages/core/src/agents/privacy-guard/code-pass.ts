@@ -1,5 +1,5 @@
 import { applyMatches, type Match } from "./apply.js";
-import { EMAIL_RE, findAll, findPhones, overlaps, termRegex, tokenSpans } from "./matching.js";
+import { EMAIL_RE, fold, findAll, findPhones, overlaps, termRegex, tokenSpans } from "./matching.js";
 import type { TokenRegistry } from "./registry.js";
 import { buildTargets } from "./targets.js";
 import { TOKEN_PATTERN, type KnownEntities } from "./types.js";
@@ -55,4 +55,20 @@ export function findResidualKnownPii(text: string, known: KnownEntities): string
     if (contacts.has(phone.digits)) leaks.push("PHONE");
   }
   return [...new Set(leaks)].map((c) => `${c} remained after redaction`);
+}
+
+/**
+ * Final check for a text that has had real names put back (the parent update). Allowed: the
+ * first names we restored on purpose. Not allowed: any contact detail, school, city, surname,
+ * or full name. Returns category-only descriptions, never the matched text.
+ */
+export function findUnexpectedPii(text: string, known: KnownEntities, allowedFirstNames: string[]): string[] {
+  const allowed = new Set(allowedFirstNames.map(fold));
+  const leaks: string[] = [];
+  for (const m of collectMatches(text, known)) {
+    const isPerson = m.category === "CHILD" || m.category === "GUARDIAN" || m.category === "TUTOR";
+    if (isPerson && allowed.has(fold(text.slice(m.start, m.end)))) continue;
+    leaks.push(`${m.category} found in draft`);
+  }
+  return [...new Set(leaks)];
 }

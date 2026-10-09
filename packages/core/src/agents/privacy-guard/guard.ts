@@ -2,6 +2,7 @@ import type { LlmUsage } from "../../llm/structured.js";
 import { applyFindings, type PiiDetector } from "./llm-pass.js";
 import { findResidualKnownPii, neutraliseTokens, redactWithCode } from "./code-pass.js";
 import { TokenRegistry } from "./registry.js";
+import { preregisterKnown } from "./targets.js";
 import {
   GuardError, GuardOutputSchema, MAX_NOTES_CHARS,
   type GuardOutput, type KnownEntities, type TokenMap,
@@ -38,6 +39,7 @@ function validateNotes(notes: string): string {
 export async function runPrivacyGuard(input: GuardInput): Promise<GuardResult> {
   const original = validateNotes(input.notes);
   const registry = new TokenRegistry();
+  preregisterKnown(registry, input.known);
   const afterCode = redactWithCode(neutraliseTokens(original), input.known, registry);
 
   let detection;
@@ -45,7 +47,8 @@ export async function runPrivacyGuard(input: GuardInput): Promise<GuardResult> {
     detection = await input.detector(afterCode);
   } catch (err) {
     const reason = err instanceof Error ? err.message : String(err);
-    throw new GuardError("LLM_PASS_FAILED", `Privacy model pass failed; refusing to continue: ${reason}`);
+    const usage = (err as { usage?: LlmUsage } | null)?.usage;
+    throw new GuardError("LLM_PASS_FAILED", `Privacy model pass failed; refusing to continue: ${reason}`, usage);
   }
 
   const applied = applyFindings(afterCode, detection.findings, registry);
@@ -58,4 +61,14 @@ export async function runPrivacyGuard(input: GuardInput): Promise<GuardResult> {
     llmFindingsIgnored: applied.ignored,
   });
   return { output, tokenMap: registry.getTokenMap(), llmUsage: detection.usage };
+}
+
+/**
+ * Deterministic redactor for short structured fields (event titles, interests, subjects) that go
+ * to models alongside the notes. Uses the same entity tokens as the Guard.
+ */
+export function createFieldRedactor(known: KnownEntities): (text: string) => string {
+  const registry = new TokenRegistry();
+  preregisterKnown(registry, known);
+  return (text) => redactWithCode(neutraliseTokens(text.normalize("NFC")), known, registry);
 }

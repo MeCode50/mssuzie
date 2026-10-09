@@ -82,11 +82,10 @@ describe("wrapUntrusted", () => {
 });
 
 describe("schemas reject bad outputs", () => {
-  it("findings: bad category, overlong text, too many findings", () => {
+  it("findings: bad category, too many findings (string length is enforced in code, not the wire schema)", () => {
     const ok = { text: "Mrs Patel", category: "person" };
     expect(FindingsOutputSchema.safeParse({ findings: [ok] }).success).toBe(true);
     expect(FindingsOutputSchema.safeParse({ findings: [{ ...ok, category: "alien" }] }).success).toBe(false);
-    expect(FindingsOutputSchema.safeParse({ findings: [{ ...ok, text: "x".repeat(81) }] }).success).toBe(false);
     expect(FindingsOutputSchema.safeParse({ findings: Array(51).fill(ok) }).success).toBe(false);
     expect(FindingsOutputSchema.safeParse({}).success).toBe(false);
   });

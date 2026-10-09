@@ -56,7 +56,11 @@ function describeFailure(err: unknown): string {
  */
 export async function runStructured<S extends z.ZodObject>(
   execute: LlmExecutor,
-  request: LlmRequest & { schema: S },
+  request: LlmRequest & {
+    schema: S;
+    /** Semantic validation beyond the schema. Return a problem description to trigger the retry. */
+    check?: (output: z.infer<S>) => string | null;
+  },
 ): Promise<StructuredResult<z.infer<S>>> {
   const started = Date.now();
   const usage: LlmUsage = { model: request.model, tokensIn: 0, tokensOut: 0, durationMs: 0, attempts: 0 };
@@ -71,10 +75,15 @@ export async function runStructured<S extends z.ZodObject>(
       usage.tokensOut += result.tokensOut;
       const parsed = request.schema.safeParse(result.raw);
       if (parsed.success) {
-        usage.durationMs = Date.now() - started;
-        return { output: parsed.data, usage };
+        const problem = request.check?.(parsed.data) ?? null;
+        if (problem === null) {
+          usage.durationMs = Date.now() - started;
+          return { output: parsed.data, usage };
+        }
+        lastError = problem;
+      } else {
+        lastError = describeFailure(parsed.error);
       }
-      lastError = describeFailure(parsed.error);
     } catch (err) {
       if (!isOutputValidationError(err)) throw err;
       lastError = describeFailure(err);

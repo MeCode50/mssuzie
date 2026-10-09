@@ -10,3 +10,8 @@ export { runStructured, StructuredOutputError } from "./llm/structured.js";
 export type { LlmExecutor, LlmRequest, LlmUsage, StructuredResult } from "./llm/structured.js";
 export { createOpenAiExecutor } from "./llm/openai-executor.js";
 export { wrapUntrusted, UNTRUSTED_DATA_RULE } from "./llm/untrusted.js";
+export * from "./pipeline/index.js";
+export { loadLlmConfig, costUsd } from "./llm/config.js";
+export type { LlmConfig, AgentTier } from "./llm/config.js";
+export { createMockExecutor } from "./llm/mock-executor.js";
+export * from "./schemas/index.js";

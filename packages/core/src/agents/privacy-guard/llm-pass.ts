@@ -7,7 +7,7 @@ import type { TokenRegistry } from "./registry.js";
 import type { TokenCategory } from "./types.js";
 
 export const FindingSchema = z.object({
-  text: z.string().min(2).max(80),
+  text: z.string(),
   category: z.enum(["person", "school", "organisation", "location", "contact", "other"]),
 });
 export type Finding = z.infer<typeof FindingSchema>;
@@ -51,6 +51,11 @@ export function createLlmPiiDetector(
   };
 }
 
+/** String-length limits live here, not in the schema, to keep the model-facing JSON schema strict-mode safe. */
+function isUsableFinding(text: string): boolean {
+  return text.length >= 2 && text.length <= 80 && !text.includes("[") && !text.includes("]");
+}
+
 const CATEGORY_MAP: Record<Finding["category"], TokenCategory> = {
   person: "PERSON", school: "SCHOOL", organisation: "ORG",
   location: "LOCATION", contact: "OTHER", other: "OTHER",
@@ -70,7 +75,7 @@ export function applyFindings(
   let ignored = 0;
   const unique = new Map(findings.map((f) => [fold(f.text), f]));
   for (const [key, f] of unique) {
-    const spans = f.text.includes("[") || f.text.includes("]")
+    const spans = !isUsableFinding(f.text)
       ? []
       : findAll(text, termRegex(f.text)).filter((s) => !protectedSpans.some((p) => overlaps(p, s)));
     if (spans.length === 0) ignored += 1;
