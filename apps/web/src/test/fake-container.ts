@@ -1,5 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { createLogger, loadEnv, type Env, type PrismaClient } from "@mssuzie/core";
+import { createAuth } from "@/lib/auth";
 import type { Container } from "@/lib/container";
 
 export const ORIGIN = "http://localhost:3000";
@@ -20,7 +21,8 @@ export function testEnv(over: Record<string, string> = {}): Env {
 export function fakeContainer(prisma: unknown = {}, env: Env = testEnv()): Container & { lines: Record<string, unknown>[] } {
   const lines: Record<string, unknown>[] = [];
   const logger = createLogger({ service: "web-test" }, (line) => void lines.push(JSON.parse(line)));
-  return { env, prisma: prisma as PrismaClient, logger, lines };
+  const p = prisma as PrismaClient;
+  return { env, prisma: p, logger, auth: createAuth(p, env), lines };
 }
 
 export const req = (path: string, init: RequestInit & { json?: unknown } = {}): Request => {

@@ -75,7 +75,10 @@ export interface HandleOptions {
  * errors with stable codes, and no-store caching. Request bodies are never logged.
  */
 export function handle(handler: Handler, options: HandleOptions = {}) {
-  return async (req: Request, routeCtx?: { params?: Promise<Record<string, string>> }): Promise<Response> => {
+  return async (
+    req: Request,
+    routeCtx?: { params?: Promise<Record<string, string | string[] | undefined>> },
+  ): Promise<Response> => {
     const started = Date.now();
     const c = getContainer();
     const requestId = incomingRequestId(req);
@@ -85,7 +88,7 @@ export function handle(handler: Handler, options: HandleOptions = {}) {
     let response: Response;
     try {
       if (!options.skipOriginCheck) assertSameOrigin(req, c.env.BETTER_AUTH_URL);
-      const params = routeCtx?.params ? await routeCtx.params : {};
+      const params = stringParams(routeCtx?.params ? await routeCtx.params : {});
       response = await handler({ req, params, c, log, requestId, ip: getClientIp(req.headers), fields });
     } catch (err) {
       response = toErrorResponse(err, log);
@@ -97,4 +100,9 @@ export function handle(handler: Handler, options: HandleOptions = {}) {
     });
     return response;
   };
+}
+
+/** Dynamic segments (`[id]`) arrive as strings; catch-all segments as arrays, which we do not use. */
+function stringParams(raw: Record<string, string | string[] | undefined>): Record<string, string> {
+  return Object.fromEntries(Object.entries(raw).filter((e): e is [string, string] => typeof e[1] === "string"));
 }

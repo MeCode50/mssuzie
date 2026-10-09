@@ -1,10 +1,12 @@
 import { createLogger, getPrisma, loadEnv, type Env, type Logger, type PrismaClient } from "@mssuzie/core";
+import { createAuth, type Auth } from "./auth";
 
 /** Everything a request handler needs. Built once per process; tests inject their own. */
 export interface Container {
   env: Env;
   prisma: PrismaClient;
   logger: Logger;
+  auth: Auth;
 }
 
 let current: Container | null = null;
@@ -13,7 +15,11 @@ export function getContainer(): Container {
   if (!current) {
     // loadEnv throws (and the process refuses to serve) on a bad configuration, e.g. MOCK_LLM in production.
     const env = loadEnv();
-    current = { env, prisma: getPrisma(env.DATABASE_URL), logger: createLogger({ service: "web" }) };
+    if (!env.BETTER_AUTH_SECRET || !env.BETTER_AUTH_URL) {
+      throw new Error("BETTER_AUTH_SECRET (32+ chars) and BETTER_AUTH_URL must be set for the web app");
+    }
+    const prisma = getPrisma(env.DATABASE_URL);
+    current = { env, prisma, logger: createLogger({ service: "web" }), auth: createAuth(prisma, env) };
   }
   return current;
 }

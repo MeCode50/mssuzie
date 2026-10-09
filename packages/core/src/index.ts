@@ -21,3 +21,4 @@ export type { StuckResult } from "./db/queue";
 export { createLogger, errorFields } from "./logger";
 export type { Logger, LogFields } from "./logger";
 export * from "./limits/index";
+export type { Prisma } from "./generated/prisma/client";
