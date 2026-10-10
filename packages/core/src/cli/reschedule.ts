@@ -2,7 +2,9 @@ import { config as loadDotenv } from "dotenv";
 import { DateTime } from "luxon";
 import { getPrisma, type PrismaClient } from "../db/client";
 import { loadEnv } from "../env";
+import { FakeCalendar } from "../calendar/fake";
 import { loadLlmConfig } from "../llm/config";
+import { createIntegrations } from "../notify/integrations";
 import { executeAnyRun } from "../reschedule/execute";
 import { createRescheduleRequest, RequestError } from "../reschedule/requests";
 import type { SerializedDecision } from "../reschedule/serialize";
@@ -90,13 +92,19 @@ async function main(): Promise<void> {
 
   const guardian = await findGuardian(prisma, guardianKey);
   const llm = loadLlmConfig(env);
+  // Safe by default: the real Google calendar is only touched with --live-calendar. Email always
+  // goes through the allowlist (and is a dry run when EMAIL_DRY_RUN is on).
+  const { describe, calendar, ...rest } = createIntegrations(env);
+  const live = args.includes("--live-calendar");
+  const reschedule = { ...rest, calendar: live ? calendar : new FakeCalendar() };
   console.log(`Guardian: ${guardian.name} (${guardian.timezone}) · Learner: ${guardian.learner.displayName} · Tutor: ${guardian.learner.tutor.name} (${guardian.learner.tutor.timezone})`);
   console.log(`Now:      ${formatWithZone(new Date(), guardian.timezone)}`);
   console.log(`Mode:     ${llm.mock ? "MOCK LLM (deterministic stand-ins)" : `live: main=${llm.models.main}, small=${llm.models.small}, scheduler tier=${llm.schedulerTier}`}`);
+  console.log(`Actions:  calendar=${live ? describe.calendar : "in-memory (use --live-calendar for Google)"}, email=${describe.email}`);
   console.log(`Message:  "${message}"`);
 
   const { requestId, runId } = await createRescheduleRequest(prisma, { guardianId: guardian.id, message, encryptionKey: env.ENCRYPTION_KEY });
-  const summary = await executeAnyRun({ prisma, llm, encryptionKey: env.ENCRYPTION_KEY, minNoticeHours: env.RESCHEDULE_MIN_NOTICE_HOURS, onEvent: printEvent }, runId);
+  const summary = await executeAnyRun({ prisma, llm, encryptionKey: env.ENCRYPTION_KEY, minNoticeHours: env.RESCHEDULE_MIN_NOTICE_HOURS, onEvent: printEvent, ...reschedule }, runId);
   const request = await prisma.rescheduleRequest.findUniqueOrThrow({ where: { id: requestId } });
   const parsed = request.parsedJson as { policy: SerializedDecision | null; intake: unknown } | null;
   printDecision(parsed?.policy ?? null, parsed as Record<string, any> | null, guardian.timezone);

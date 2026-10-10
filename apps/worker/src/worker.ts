@@ -1,9 +1,9 @@
 import { randomBytes } from "node:crypto";
 import { hostname } from "node:os";
 import {
-  claimRun, errorFields, executeAnyRun, LockLostError, releaseRun, requeueStuckRuns, STUCK_AFTER_MS,
+  claimRun, errorFields, executeAnyRun, type RescheduleDeps, LockLostError, releaseRun, requeueStuckRuns, STUCK_AFTER_MS,
   sweepExpiredTokenMaps, touchLock,
-  type ExecuteDeps, type LlmConfig, type Logger, type PrismaClient, type RunSummary,
+  type LlmConfig, type Logger, type PrismaClient, type RunSummary,
 } from "@mssuzie/core";
 
 export interface WorkerOptions {
@@ -25,8 +25,10 @@ export interface WorkerOptions {
   shutdownGraceMs?: number;
   /** Reschedule notice policy in hours (for rescheduling runs). */
   minNoticeHours?: number;
+  /** The calendar and mailer rescheduling runs act through. */
+  reschedule: Pick<RescheduleDeps, "calendar" | "mailer" | "linkSecret" | "baseUrl">;
   /** Injectable for tests. */
-  execute?: (deps: ExecuteDeps, runId: string) => Promise<RunSummary>;
+  execute?: (deps: RescheduleDeps, runId: string) => Promise<RunSummary>;
 }
 
 const MAX_BACKOFF_MS = 30_000;
@@ -126,7 +128,7 @@ export class Worker {
       const execute = this.o.execute ?? executeAnyRun;
       const summary = await execute(
         {
-          prisma: this.o.prisma, llm: this.o.llm, encryptionKey: this.o.encryptionKey, lockedBy: this.id, minNoticeHours: this.o.minNoticeHours,
+          prisma: this.o.prisma, llm: this.o.llm, encryptionKey: this.o.encryptionKey, lockedBy: this.id, minNoticeHours: this.o.minNoticeHours, ...this.o.reschedule,
           onEvent: (e) =>
             log.info("step", {
               agent: e.agent, status: e.status, attempt: e.attempt, tokensIn: e.tokensIn,

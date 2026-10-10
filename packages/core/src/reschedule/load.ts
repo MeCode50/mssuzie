@@ -39,5 +39,6 @@ export async function loadRescheduleWork(prisma: PrismaClient, runId: string, en
     known: buildKnownEntities({ learner, guardians: learner.guardians, tutor }),
     base,
   };
-  return { request, learner, input };
+  const bookingVersions = new Map(classes.map((c) => [c.id, c.version]));
+  return { request, learner, input, bookingVersions };
 }

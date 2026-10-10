@@ -3,7 +3,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
   createLogger, createMockExecutor, createRescheduleRequest, createMockToolExecutor, resetDemoData, seedAccounts, type ExecuteDeps, type LlmConfig, type RunSummary,
 } from "@mssuzie/core";
-import { createTestDb, TEST_DATABASE_URL, type TestDb } from "@mssuzie/core/testing";
+import { createTestDb, TEST_DATABASE_URL, testIntegrations, type TestDb } from "@mssuzie/core/testing";
 import { Worker, type WorkerOptions } from "./worker";
 
 const KEY = randomBytes(32).toString("base64");
@@ -67,7 +67,7 @@ describe.skipIf(!TEST_DATABASE_URL)("worker (real Postgres)", () => {
   }
 
   const make = (over: Partial<WorkerOptions> = {}) =>
-    new Worker({ prisma: db.connect(8), llm, encryptionKey: KEY, logger, pollIntervalMs: 20, maintenanceMs: 60_000, ...over });
+    new Worker({ prisma: db.connect(8), llm, encryptionKey: KEY, logger, reschedule: testIntegrations(), pollIntervalMs: 20, maintenanceMs: 60_000, ...over });
 
   it("processes every queued run exactly once, passing its own id as the lock owner", async () => {
     const runs = await makeRuns(3);

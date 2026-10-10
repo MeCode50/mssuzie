@@ -1,5 +1,5 @@
 import { config as loadDotenv } from "dotenv";
-import { createLogger, errorFields, getPrisma, loadEnv, loadLlmConfig } from "@mssuzie/core";
+import { createIntegrations, createLogger, errorFields, getPrisma, loadEnv, loadLlmConfig } from "@mssuzie/core";
 import { Worker } from "./worker";
 
 loadDotenv({ path: "../../.env", quiet: true });
@@ -19,9 +19,11 @@ async function main(): Promise<void> {
   const env = loadEnv();
   const llm = loadLlmConfig(env);
   const prisma = getPrisma(env.DATABASE_URL);
+  const { describe, ...reschedule } = createIntegrations(env);
+  logger.info("integrations", describe);
 
   const worker = new Worker({
-    prisma, llm, logger, encryptionKey: env.ENCRYPTION_KEY, minNoticeHours: env.RESCHEDULE_MIN_NOTICE_HOURS,
+    prisma, llm, logger, encryptionKey: env.ENCRYPTION_KEY, minNoticeHours: env.RESCHEDULE_MIN_NOTICE_HOURS, reschedule,
     concurrency: positiveInt("WORKER_CONCURRENCY", 1),
     pollIntervalMs: positiveInt("WORKER_POLL_MS", 1000),
     shutdownGraceMs: positiveInt("WORKER_SHUTDOWN_GRACE_MS", 60_000),
