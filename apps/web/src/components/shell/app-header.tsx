@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Actor } from "@/lib/session";
 import { MainNav } from "./main-nav";
+import { ResetDemo } from "./reset-demo";
 import { UserMenu } from "./user-menu";
 
 export function AppHeader({ actor }: { actor: Actor }) {
@@ -14,7 +15,10 @@ export function AppHeader({ actor }: { actor: Actor }) {
           </Link>
           <MainNav role={actor.role} />
         </div>
-        <UserMenu name={actor.name} role={actor.role} />
+        <div className="flex items-center gap-2">
+          {actor.role === "ops" ? <ResetDemo /> : null}
+          <UserMenu name={actor.name} role={actor.role} />
+        </div>
       </div>
     </header>
   );
