@@ -55,6 +55,8 @@ async function loadInput(deps: ExecuteDeps, runId: string): Promise<{ input: Pip
     include: { session: { include: { tutor: true, learner: { include: { guardians: true, events: true } } } } },
   });
   const { session } = run;
+  // Rescheduling runs have their own executor; this one only handles Session Copilot analyses.
+  if (!session) throw new Error(`Run ${runId} is not a Session Copilot run`);
   const learner = session.learner;
 
   const snapshots = await prisma.skillSnapshot.findMany({

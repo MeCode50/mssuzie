@@ -85,7 +85,7 @@ export async function learnerDetail(ctx: RequestContext, actor: Actor, id: strin
     skills,
     sessions: sessions.map((s) => ({ id: s.id, heldAt: s.heldAt, durationMin: s.durationMin, latestRun: s.runs[0] ?? null })),
     currentPlan: plan?.success && planStep
-      ? { runId: planStep.run.id, generatedAt: planStep.createdAt, afterSessionOn: planStep.run.session.heldAt, ...humanize(plan.data) }
+      ? { runId: planStep.run.id, generatedAt: planStep.createdAt, afterSessionOn: planStep.run.session?.heldAt ?? planStep.createdAt, ...humanize(plan.data) }
       : null,
     latestParentUpdate: parentUpdate
       ? { id: parentUpdate.id, runId: parentUpdate.runId, body: parentUpdate.body, status: parentUpdate.status, createdAt: parentUpdate.createdAt, approvedAt: parentUpdate.approvedAt }

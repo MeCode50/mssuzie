@@ -49,6 +49,55 @@ enum AgentName {
   progress_monitor
   learning_planner
   parent_reporter
+  // Rescheduling pipeline
+  intake_agent
+  scheduler_agent
+  policy_check
+  calendar_step
+  notifier_agent
+}
+
+// A run is either a Session Copilot analysis or a rescheduling request.
+enum RunPipeline {
+  session_copilot
+  reschedule
+}
+
+// run_steps rows are either an agent's own step or a tool call nested under it on the live trace.
+enum StepKind {
+  agent
+  tool
+}
+
+enum BookingStatus {
+  scheduled
+  rescheduled
+  cancelled
+}
+
+enum RequestChannel {
+  simulator
+  email
+}
+
+enum RescheduleDecision {
+  auto_applied
+  proposed
+  escalated
+  confirmed
+  rejected
+}
+
+enum NotificationRole {
+  parent
+  tutor
+  ops
+}
+
+enum NotificationStatus {
+  sent
+  failed
+  dry_run
 }
 
 enum UpdateStatus {
@@ -79,12 +128,16 @@ model User {
   emailVerified Boolean  @default(false) @map("email_verified")
   image         String?
   role          Role     @default(tutor)
+  // IANA time zone. Tutors work in this zone; their availability hours are local to it.
+  timezone      String   @default("Africa/Lagos")
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
+  availability   TutorAvailability[]
+  bookings       Booking[]           @relation("BookingTutor")
   sessions       AuthSession[]
   accounts       Account[]
-  learners       Learner[]         @relation("LearnerTutor")
+  learners       Learner[]           @relation("LearnerTutor")
   tutoredSession TutoringSession[]
 
   @@map("users")
@@ -166,12 +219,14 @@ model Learner {
   city             String?
   createdAt        DateTime      @default(now()) @map("created_at")
 
-  guardians      Guardian[]
-  events         Event[]
-  sessions       TutoringSession[]
-  skillSnapshots SkillSnapshot[]
-  parentUpdates  ParentUpdate[]
-  alerts         Alert[]
+  guardians          Guardian[]
+  bookings           Booking[]
+  rescheduleRequests RescheduleRequest[]
+  events             Event[]
+  sessions           TutoringSession[]
+  skillSnapshots     SkillSnapshot[]
+  parentUpdates      ParentUpdate[]
+  alerts             Alert[]
 
   @@index([tutorId])
   @@map("learners")
@@ -184,6 +239,10 @@ model Guardian {
   name      String
   email     String
   phone     String
+  // IANA time zone: "7pm" in a parent's message means 7pm here.
+  timezone  String  @default("Europe/London")
+
+  rescheduleRequests RescheduleRequest[]
 
   @@index([learnerId])
   @@map("guardians")
@@ -223,28 +282,31 @@ model TutoringSession {
 }
 
 model Run {
-  id                String          @id @default(uuid())
-  sessionId         String          @map("session_id")
-  session           TutoringSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  status            RunStatus       @default(queued)
-  idempotencyKey    String          @unique @map("idempotency_key")
-  createdById       String?         @map("created_by_id")
-  createdAt         DateTime        @default(now()) @map("created_at")
-  startedAt         DateTime?       @map("started_at")
-  finishedAt        DateTime?       @map("finished_at")
-  totalTokens       Int             @default(0) @map("total_tokens")
-  costUsd           Decimal         @default(0) @map("cost_usd") @db.Decimal(12, 6)
-  lockedBy          String?         @map("locked_by")
-  lockedAt          DateTime?       @map("locked_at")
+  id                String           @id @default(uuid())
+  pipeline          RunPipeline      @default(session_copilot)
+  // Null for rescheduling runs (they belong to a reschedule request, not a tutoring session).
+  sessionId         String?          @map("session_id")
+  session           TutoringSession? @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  status            RunStatus        @default(queued)
+  idempotencyKey    String           @unique @map("idempotency_key")
+  createdById       String?          @map("created_by_id")
+  createdAt         DateTime         @default(now()) @map("created_at")
+  startedAt         DateTime?        @map("started_at")
+  finishedAt        DateTime?        @map("finished_at")
+  totalTokens       Int              @default(0) @map("total_tokens")
+  costUsd           Decimal          @default(0) @map("cost_usd") @db.Decimal(12, 6)
+  lockedBy          String?          @map("locked_by")
+  lockedAt          DateTime?        @map("locked_at")
   // Incremented on every claim; a run claimed too many times without finishing is failed, not re-queued.
-  claimCount        Int             @default(0) @map("claim_count")
+  claimCount        Int              @default(0) @map("claim_count")
   // AES-256-GCM encrypted token map (original value <-> token). Nulled by the 30-day sweep.
-  tokenMapEnc       String?         @map("token_map_enc")
-  tokenMapExpiresAt DateTime?       @map("token_map_expires_at")
+  tokenMapEnc       String?          @map("token_map_enc")
+  tokenMapExpiresAt DateTime?        @map("token_map_expires_at")
 
-  steps         RunStep[]
-  parentUpdates ParentUpdate[]
-  alerts        Alert[]
+  steps             RunStep[]
+  parentUpdates     ParentUpdate[]
+  alerts            Alert[]
+  rescheduleRequest RescheduleRequest?
 
   @@index([status, createdAt])
   @@index([status, lockedAt])
@@ -261,6 +323,10 @@ model RunStep {
   // Monotonic per run; the SSE stream replays and then polls by seq.
   seq        Int
   agent      AgentName
+  kind       StepKind   @default(agent)
+  // For kind = tool: the tool's name and the (validated) input it was called with.
+  toolName   String?    @map("tool_name")
+  inputJson  Json?      @map("input_json")
   status     StepStatus
   attempt    Int        @default(1)
   outputJson Json?      @map("output_json")
@@ -328,4 +394,99 @@ model Alert {
   @@index([status, createdAt])
   @@index([learnerId])
   @@map("alerts")
+}
+
+// ───────────── Rescheduling ─────────────
+
+// A tutor's weekly working hours. Times are "HH:MM" in the tutor's own time zone (users.timezone);
+// a weekday can have several windows (split shifts). ISO weekdays: 1 = Monday ... 7 = Sunday.
+model TutorAvailability {
+  id        String @id @default(uuid())
+  tutorId   String @map("tutor_id")
+  tutor     User   @relation(fields: [tutorId], references: [id], onDelete: Cascade)
+  weekday   Int
+  startTime String @map("start_time") @db.VarChar(5)
+  endTime   String @map("end_time") @db.VarChar(5)
+
+  @@unique([tutorId, weekday, startTime])
+  @@index([tutorId, weekday])
+  @@map("tutor_availability")
+}
+
+// A scheduled class. starts_at is UTC. The database itself forbids a tutor (or a learner) being
+// booked twice at the same time (see the exclusion constraints in the migration).
+model Booking {
+  id              String        @id @default(uuid())
+  learnerId       String        @map("learner_id")
+  learner         Learner       @relation(fields: [learnerId], references: [id], onDelete: Cascade)
+  tutorId         String        @map("tutor_id")
+  tutor           User          @relation("BookingTutor", fields: [tutorId], references: [id])
+  startsAt        DateTime      @map("starts_at")
+  durationMin     Int           @map("duration_min")
+  status          BookingStatus @default(scheduled)
+  calendarEventId String?       @map("calendar_event_id")
+  // Optimistic locking: every change must say which version it started from.
+  version         Int           @default(1)
+  lastMovedAt     DateTime?     @map("last_moved_at")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  requests RescheduleRequest[]
+
+  @@index([tutorId, startsAt])
+  @@index([learnerId, startsAt])
+  @@map("bookings")
+}
+
+model RescheduleRequest {
+  id                String              @id @default(uuid())
+  guardianId        String              @map("guardian_id")
+  guardian          Guardian            @relation(fields: [guardianId], references: [id], onDelete: Cascade)
+  // Resolved by the Intake agent; null until then (or if it could not tell).
+  learnerId         String?             @map("learner_id")
+  learner           Learner?            @relation(fields: [learnerId], references: [id], onDelete: Cascade)
+  bookingId         String?             @map("booking_id")
+  booking           Booking?            @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  channel           RequestChannel      @default(simulator)
+  // AES-256-GCM. The parent's message can contain names and contact details.
+  rawMessageEnc     String              @map("raw_message_enc")
+  parsedJson        Json?               @map("parsed_json")
+  // Null while the request is still being processed.
+  decision          RescheduleDecision?
+  reason            String?
+  proposedSlotsJson Json?               @map("proposed_slots_json")
+  decidedBy         String?             @map("decided_by")
+  // Before and after (UTC) once a booking has actually been moved.
+  appliedFromAt     DateTime?           @map("applied_from_at")
+  appliedToAt       DateTime?           @map("applied_to_at")
+  runId             String?             @unique @map("run_id")
+  run               Run?                @relation(fields: [runId], references: [id], onDelete: SetNull)
+  createdAt         DateTime            @default(now()) @map("created_at")
+  updatedAt         DateTime            @updatedAt @map("updated_at")
+
+  notifications Notification[]
+
+  @@index([guardianId, createdAt])
+  @@index([decision, createdAt])
+  @@map("reschedule_requests")
+}
+
+model Notification {
+  id                String             @id @default(uuid())
+  requestId         String             @map("request_id")
+  request           RescheduleRequest  @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  toRole            NotificationRole   @map("to_role")
+  // Where it was actually delivered (null for in-app notices to ops).
+  toEmail           String?            @map("to_email")
+  // Who it was meant for, when the allowlist redirected it elsewhere.
+  intendedEmail     String?            @map("intended_email")
+  subject           String
+  body              String
+  status            NotificationStatus
+  providerMessageId String?            @map("provider_message_id")
+  error             String?
+  createdAt         DateTime           @default(now()) @map("created_at")
+
+  @@index([requestId])
+  @@map("notifications")
 }

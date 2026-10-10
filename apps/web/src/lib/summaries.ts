@@ -28,5 +28,7 @@ export function summarizeStep(agent: AgentName, output: unknown): string | null 
       const p = ReportSchema.safeParse(output);
       return p.success ? `Draft ready: ${plural(p.data.wins.length, "win")} and one thing to try at home` : null;
     }
+    default:
+      return null; // rescheduling agents get their summaries with the rescheduling screens
   }
 }

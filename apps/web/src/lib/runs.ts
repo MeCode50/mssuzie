@@ -74,7 +74,7 @@ async function findReplay(ctx: RequestContext, actor: Actor, key: string, hash: 
   if (existing.idempotencyKey !== `${prefix}${hash}`) {
     throw new ApiError(409, "idempotency_conflict", "That Idempotency-Key was already used for a different request. Use a new key for new notes.");
   }
-  return { runId: existing.id, sessionId: existing.sessionId, status: existing.status, replay: true };
+  return { runId: existing.id, sessionId: existing.sessionId ?? "", status: existing.status, replay: true };
 }
 
 export async function createSessionRun(ctx: RequestContext, actor: Actor, input: CreateSessionInput, key: string): Promise<CreatedRun> {
@@ -141,6 +141,9 @@ export function stepView(s: StepRow) {
 
 export async function serializeRun(ctx: Pick<RequestContext, "c">, run: Awaited<ReturnType<typeof loadRunFor>>) {
   const { prisma } = ctx.c;
+  // Only Session Copilot runs belong to a tutoring session; rescheduling runs get their own view.
+  if (!run.session) throw errors.notFound("That run");
+  const session = run.session;
   const [steps, parentUpdate, alert] = await Promise.all([
     prisma.runStep.findMany({ where: { runId: run.id }, orderBy: { seq: "asc" } }),
     prisma.parentUpdate.findFirst({ where: { runId: run.id }, orderBy: { createdAt: "desc" } }),
@@ -159,7 +162,7 @@ export async function serializeRun(ctx: Pick<RequestContext, "c">, run: Awaited<
     run: {
       id: run.id, status: run.status, createdAt: run.createdAt, startedAt: run.startedAt, finishedAt: run.finishedAt,
       totalTokens: run.totalTokens, costUsd: Number(run.costUsd),
-      sessionId: run.sessionId, heldAt: run.session.heldAt, learner: run.session.learner,
+      sessionId: run.sessionId, heldAt: session.heldAt, learner: session.learner,
     },
     steps: steps.map(stepView),
     agents,

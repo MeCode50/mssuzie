@@ -24,6 +24,11 @@ export async function createTestDb(url = TEST_DATABASE_URL): Promise<TestDb> {
   const admin = new pg.Client({ connectionString: url });
   await admin.connect();
   try {
+    // btree_gist is installed once per database. Parallel test files would race to create it, so
+    // serialise on an advisory lock; the migration's own CREATE EXTENSION IF NOT EXISTS is then a no-op.
+    await admin.query("SELECT pg_advisory_lock(7461)");
+    await admin.query("CREATE EXTENSION IF NOT EXISTS btree_gist SCHEMA public");
+    await admin.query("SELECT pg_advisory_unlock(7461)");
     await admin.query(`CREATE SCHEMA "${schema}"`);
     await admin.query(`SET search_path TO "${schema}"`);
     const dirs = readdirSync(fileURLToPath(MIGRATIONS), { withFileTypes: true })
