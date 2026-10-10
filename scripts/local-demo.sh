@@ -43,6 +43,6 @@ case "${1:-}" in
     echo "Now run:  scripts/local-demo.sh web     and in a 2nd terminal:  scripts/local-demo.sh worker" ;;
   web)    exec pnpm --filter @mssuzie/web dev ;;
   worker) exec pnpm worker ;;
-  env)    env | grep -E '^(DATABASE_URL|DIRECT_URL|MOCK_LLM|EMAIL_|ENCRYPTION_KEY|BETTER_AUTH|ACTION_LINK|LLM_|SEED_)' | sed 's/^/export /' ;;
+  env)    env | grep -E '^(DATABASE_URL|DIRECT_URL|MOCK_LLM|DEMO_INBOX|EMAIL_|ENCRYPTION_KEY|BETTER_AUTH|ACTION_LINK|LLM_|SEED_)' | sed 's/^/export /' ;;
   *) echo "usage: $0 setup|web|worker|env" >&2; exit 2 ;;
 esac

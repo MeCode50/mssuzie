@@ -16,7 +16,8 @@
     "db:seed": "tsx prisma/seed.ts",
     "postinstall": "prisma generate",
     "run-session": "tsx src/cli/run-session.ts",
-    "reschedule": "tsx src/cli/reschedule.ts"
+    "reschedule": "tsx src/cli/reschedule.ts",
+    "eval": "tsx src/cli/eval-reschedule.ts"
   },
   "dependencies": {
     "@openai/agents": "0.20.0",
