@@ -41,3 +41,6 @@ export { moveBooking } from "./reschedule/move";
 export { checkActionToken, consumeActionToken, voidActionTokens, issueActionToken, ACTION_LINK_TTL_MS } from "./notify/action-links";
 export { FakeCalendar } from "./calendar/fake";
 export type { RescheduleDeps } from "./reschedule/execute";
+export { confirmSlot, rejectRequest } from "./reschedule/confirm";
+export type { ConfirmResult, ConfirmRefusal, ConfirmActor, RejectResult, SettleDeps } from "./reschedule/confirm";
+export { loadScheduleFor } from "./reschedule/load";
