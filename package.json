@@ -19,6 +19,7 @@
     "test:db:up": "bash scripts/test-db.sh up",
     "test:db:down": "bash scripts/test-db.sh down",
     "test:db": "bash scripts/test-db.sh up && TEST_DATABASE_URL=\"$(bash scripts/test-db.sh url)\" pnpm test",
-    "worker": "pnpm --filter @mssuzie/worker start"
+    "worker": "pnpm --filter @mssuzie/worker start",
+    "reschedule": "pnpm --filter @mssuzie/core reschedule"
   }
 }

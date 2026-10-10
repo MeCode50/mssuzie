@@ -15,7 +15,8 @@
     "db:deploy": "prisma migrate deploy",
     "db:seed": "tsx prisma/seed.ts",
     "postinstall": "prisma generate",
-    "run-session": "tsx src/cli/run-session.ts"
+    "run-session": "tsx src/cli/run-session.ts",
+    "reschedule": "tsx src/cli/reschedule.ts"
   },
   "dependencies": {
     "@openai/agents": "0.20.0",
