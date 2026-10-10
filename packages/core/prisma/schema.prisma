@@ -94,6 +94,15 @@ enum NotificationRole {
   ops
 }
 
+// What a message is about. One message per request, recipient and kind: sending is idempotent.
+enum NotificationKind {
+  applied
+  proposal
+  confirmed
+  escalation
+  rejected
+}
+
 enum NotificationStatus {
   sent
   failed
@@ -492,6 +501,7 @@ model Notification {
   requestId         String             @map("request_id")
   request           RescheduleRequest  @relation(fields: [requestId], references: [id], onDelete: Cascade)
   toRole            NotificationRole   @map("to_role")
+  kind              NotificationKind
   // Where it was actually delivered (null for in-app notices to ops).
   toEmail           String?            @map("to_email")
   // Who it was meant for, when the allowlist redirected it elsewhere.
@@ -503,6 +513,6 @@ model Notification {
   error             String?
   createdAt         DateTime           @default(now()) @map("created_at")
 
-  @@index([requestId])
+  @@unique([requestId, toRole, kind])
   @@map("notifications")
 }

@@ -194,8 +194,8 @@ describe.skipIf(!TEST_DATABASE_URL)("scheduling schema and demo seed (real Postg
           appliedFromAt: scenarios.happy.currentStartsAt, appliedToAt: scenarios.happy.requestedStartsAt,
           proposedSlotsJson: [{ startsAt: "2026-10-16T18:00:00Z" }], parsedJson: { confidence: 0.93 },
           notifications: { create: [
-            { toRole: "parent", toEmail: "ngozi.okafor@example.com", subject: "Moved", body: "Done", status: "dry_run" },
-            { toRole: "ops", subject: "FYI", body: "Moved automatically", status: "sent" },
+            { toRole: "parent", kind: "applied", toEmail: "ngozi.okafor@example.com", subject: "Moved", body: "Done", status: "dry_run" },
+            { toRole: "ops", kind: "escalation", subject: "FYI", body: "Moved automatically", status: "sent" },
           ] },
         },
         include: { notifications: true },
