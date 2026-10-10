@@ -465,10 +465,26 @@ model RescheduleRequest {
   updatedAt         DateTime            @updatedAt @map("updated_at")
 
   notifications Notification[]
+  actionTokens  ActionToken[]
 
   @@index([guardianId, createdAt])
   @@index([decision, createdAt])
   @@map("reschedule_requests")
+}
+
+// One accept-this-time link in an email. Single-use and short-lived; the signed token only carries
+// the id, everything else is looked up here.
+model ActionToken {
+  id               String            @id @default(uuid())
+  requestId        String            @map("request_id")
+  request          RescheduleRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  slotStartsAt     DateTime          @map("slot_starts_at")
+  expiresAt        DateTime          @map("expires_at")
+  usedAt           DateTime?         @map("used_at")
+  createdAt        DateTime          @default(now()) @map("created_at")
+
+  @@index([requestId])
+  @@map("action_tokens")
 }
 
 model Notification {

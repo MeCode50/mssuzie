@@ -49,6 +49,21 @@ const EnvSchema = z
     // Better Auth (web only). The web app refuses to start without them in production.
     BETTER_AUTH_SECRET: z.string().min(32, "BETTER_AUTH_SECRET must be at least 32 characters").optional(),
     BETTER_AUTH_URL: z.string().url().optional(),
+    // Google Calendar (service account; the calendar must be shared with its email, "make changes").
+    GOOGLE_SERVICE_ACCOUNT_JSON_BASE64: z.string().min(1).optional(),
+    GOOGLE_CALENDAR_ID: z.string().min(1).optional(),
+    // Email. With EMAIL_DRY_RUN nothing is sent; messages are only recorded.
+    SMTP_HOST: z.string().min(1).optional(),
+    SMTP_PORT: z.coerce.number().int().positive().default(587),
+    SMTP_USER: z.string().min(1).optional(),
+    SMTP_PASS: z.string().min(1).optional(),
+    EMAIL_FROM: z.string().min(3).optional(),
+    // Comma-separated. Mail to any other address is redirected to DEMO_INBOX, never delivered.
+    EMAIL_ALLOWLIST: z.string().optional().transform((v) => (v ?? "").split(",").map((a) => a.trim().toLowerCase()).filter(Boolean)),
+    DEMO_INBOX: z.string().email().optional(),
+    EMAIL_DRY_RUN: flag,
+    // HMAC key for the accept-this-time links in emails.
+    ACTION_LINK_SECRET: z.string().min(32, "ACTION_LINK_SECRET must be at least 32 characters").optional(),
     MOCK_LLM: flag,
   })
   .superRefine((env, ctx) => {
@@ -58,6 +73,17 @@ const EnvSchema = z
         path: ["MOCK_LLM"],
         message: "MOCK_LLM must never be enabled when NODE_ENV=production",
       });
+    }
+    if (env.NODE_ENV === "production") {
+      if (env.EMAIL_ALLOWLIST.length === 0) {
+        ctx.addIssue({ code: "custom", path: ["EMAIL_ALLOWLIST"], message: "EMAIL_ALLOWLIST is required in production so a demo can never email a real parent" });
+      }
+      if (!env.ACTION_LINK_SECRET) {
+        ctx.addIssue({ code: "custom", path: ["ACTION_LINK_SECRET"], message: "ACTION_LINK_SECRET is required in production" });
+      }
+    }
+    if (env.DEMO_INBOX && env.EMAIL_ALLOWLIST.length > 0 && !env.EMAIL_ALLOWLIST.includes(env.DEMO_INBOX.toLowerCase())) {
+      ctx.addIssue({ code: "custom", path: ["DEMO_INBOX"], message: "DEMO_INBOX must itself be on EMAIL_ALLOWLIST" });
     }
   });
 
