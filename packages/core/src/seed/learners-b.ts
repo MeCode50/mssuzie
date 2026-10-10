@@ -11,7 +11,7 @@ export const priya: SeedLearner = {
   status: "watch",
   school: "Kingsmead School",
   city: "Birmingham",
-  guardian: { name: "Meera Nair", email: "meera.nair@example.com", phone: "+44 7700 900103" },
+  guardian: { name: "Meera Nair", email: "meera.nair@example.com", phone: "+44 7700 900103", timezone: "Europe/London" },
   events: [
     { type: "exam", subject: "Chemistry", title: "GCSE Chemistry mock, paper 2", inDays: 18 },
     { type: "exam", subject: "Maths", title: "GCSE Maths mock, paper 1", inDays: 21 },
@@ -75,7 +75,7 @@ export const tomas: SeedLearner = {
   status: "on_track",
   school: "Willowbrook Primary",
   city: "Cardiff",
-  guardian: { name: "Inês Silva", email: "ines.silva@example.com", phone: "+44 7700 900104" },
+  guardian: { name: "Inês Silva", email: "ines.silva@example.com", phone: "+44 7700 900104", timezone: "Europe/Lisbon" },
   events: [{ type: "exam", subject: "Phonics", title: "Phonics screening check", inDays: 30 }],
   sessions: [
     {
@@ -129,7 +129,7 @@ export const zainab: SeedLearner = {
   status: "watch",
   school: "Riverside Primary",
   city: "Manchester",
-  guardian: { name: "Hadiza Bello", email: "hadiza.bello@example.com", phone: "+44 7700 900105" },
+  guardian: { name: "Hadiza Bello", email: "hadiza.bello@example.com", phone: "+44 7700 900105", timezone: "Europe/London" },
   events: [{ type: "exam", subject: "Maths", title: "KS2 SATs maths reasoning paper", inDays: 25 }],
   sessions: [
     {

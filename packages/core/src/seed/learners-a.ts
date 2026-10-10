@@ -11,7 +11,7 @@ export const amara: SeedLearner = {
   status: "on_track",
   school: "Oakfield Academy",
   city: "Leeds",
-  guardian: { name: "Ngozi Okafor", email: "ngozi.okafor@example.com", phone: "+44 7700 900101" },
+  guardian: { name: "Ngozi Okafor", email: "ngozi.okafor@example.com", phone: "+44 7700 900101", timezone: "Europe/London" },
   events: [{ type: "exam", subject: "Maths", title: "Year 8 algebra unit test", inDays: 12 }],
   sessions: [
     {
@@ -82,7 +82,7 @@ export const leo: SeedLearner = {
   status: "at_risk",
   school: "St Brigid's Primary",
   city: "Bristol",
-  guardian: { name: "Katrin Hartmann", email: "katrin.hartmann@example.com", phone: "+44 7700 900102" },
+  guardian: { name: "Katrin Hartmann", email: "katrin.hartmann@example.com", phone: "+44 7700 900102", timezone: "America/Chicago" },
   events: [{ type: "assignment", subject: "English", title: "Reading journal, 3 entries", inDays: 6 }],
   sessions: [
     {

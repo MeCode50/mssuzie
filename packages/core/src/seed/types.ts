@@ -22,7 +22,7 @@ export interface SeedLearner {
   status: "on_track" | "watch" | "at_risk";
   school: string;
   city: string;
-  guardian: { name: string; email: string; phone: string };
+  guardian: { name: string; email: string; phone: string; timezone: string };
   events: { type: "exam" | "assignment"; subject: string; title: string; inDays: number }[];
   sessions: SeedSession[];
   parentUpdate?: { status: "draft" | "approved"; daysAgo: number; body: string };

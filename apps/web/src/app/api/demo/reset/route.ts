@@ -31,7 +31,7 @@ export const POST = handle(async (ctx) => {
   if (busy > 0) throw errors.conflict("A run is still in progress. Please wait for it to finish, then reset the demo.");
 
   ctx.log.warn("demo reset started", { requestedBy: actor.id });
-  await resetDemoData(prisma, env.ENCRYPTION_KEY);
+  await resetDemoData(prisma, env.ENCRYPTION_KEY, { minNoticeHours: env.RESCHEDULE_MIN_NOTICE_HOURS });
   const [learners, sessions, alerts] = await Promise.all([
     prisma.learner.count(), prisma.tutoringSession.count(), prisma.alert.count({ where: { status: "open" } }),
   ]);
