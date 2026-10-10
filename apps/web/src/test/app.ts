@@ -49,7 +49,7 @@ export async function startTestApp(envOver: Record<string, string> = {}): Promis
     async login(who, ip = `10.0.${Math.floor(Math.random() * 250)}.${Math.floor(Math.random() * 250)}`) {
       const res = await c.auth.api.signInEmail({
         body: { email: EMAILS[who], password: PASSWORDS[who] },
-        headers: new Headers({ "x-real-ip": ip }),
+        headers: new Headers({ "x-client-ip": ip }),
         asResponse: true,
       });
       if (!res.ok) throw new Error(`test login failed for ${who}: ${res.status}`);

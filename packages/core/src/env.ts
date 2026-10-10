@@ -64,6 +64,9 @@ const EnvSchema = z
     EMAIL_DRY_RUN: flag,
     // HMAC key for the accept-this-time links in emails.
     ACTION_LINK_SECRET: z.string().min(32, "ACTION_LINK_SECRET must be at least 32 characters").optional(),
+    // How many reverse proxies sit in front of the web app (Coolify's proxy = 1; behind Cloudflare too = 2).
+    // Decides which X-Forwarded-For entry is the real client address for rate limiting.
+    TRUSTED_PROXY_HOPS: z.coerce.number().int().min(1).max(5).default(1),
     MOCK_LLM: flag,
   })
   .superRefine((env, ctx) => {

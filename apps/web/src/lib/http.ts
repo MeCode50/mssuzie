@@ -91,7 +91,7 @@ export function handle(handler: Handler, options: HandleOptions = {}) {
     try {
       if (!options.skipOriginCheck) assertSameOrigin(req, c.env.BETTER_AUTH_URL);
       const params = stringParams(routeCtx?.params ? await routeCtx.params : {});
-      response = await handler({ req, params, c, log, requestId, ip: getClientIp(req.headers), fields });
+      response = await handler({ req, params, c, log, requestId, ip: getClientIp(req.headers, c.env.TRUSTED_PROXY_HOPS), fields });
     } catch (err) {
       response = toErrorResponse(err, log);
     }

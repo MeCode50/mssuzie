@@ -30,7 +30,7 @@ describe.skipIf(!TEST_DATABASE_URL)("auth (real Postgres + Better Auth)", () => 
 
   it("marks cookies Secure (and prefixed) when the app is served over https", async () => {
     const https = createAuth(app.db.prisma, { ...app.env, BETTER_AUTH_URL: "https://copilot.example.com" });
-    const res = await https.api.signInEmail({ body: { email: EMAILS.ebun, password: PASSWORDS.ebun }, headers: new Headers({ "x-real-ip": "20.0.0.2" }), asResponse: true });
+    const res = await https.api.signInEmail({ body: { email: EMAILS.ebun, password: PASSWORDS.ebun }, headers: new Headers({ "x-client-ip": "20.0.0.2" }), asResponse: true });
     const cookie = res.headers.getSetCookie().join("\n");
     expect(cookie).toMatch(/Secure/i);
     expect(cookie).toMatch(/__Secure-/);
@@ -107,6 +107,19 @@ describe.skipIf(!TEST_DATABASE_URL)("auth (real Postgres + Better Auth)", () => 
     expect(results.slice(0, 10).every((s) => s === 401)).toBe(true);
     expect(results.slice(10)).toEqual([429, 429]);
     expect((await signIn(EMAILS.ebun, PASSWORDS.ebun, "30.0.0.10")).status).toBe(200);
+  });
+
+  it("cannot be defeated by forging the client address: only the address the proxy appended counts", async () => {
+    const attempt = (spoof: string, forgedHeader: string) =>
+      authPOST(req("/api/auth/sign-in/email", {
+        method: "POST", json: { email: EMAILS.ebun, password: "wrong-password-here" },
+        // a guesser rotates the leading, client-supplied entries; the proxy always appends the one real address
+        headers: { origin: ORIGIN, "x-client-ip": forgedHeader, "x-forwarded-for": `${spoof}, 31.0.0.77` },
+      }));
+    const results: number[] = [];
+    for (let i = 0; i < 12; i++) results.push((await attempt(`10.9.8.${i}`, `10.7.7.${i}`)).status);
+    expect(results.slice(0, 10).every((s) => s === 401)).toBe(true);
+    expect(results.slice(10)).toEqual([429, 429]);
   });
 
   it("answers GET /api/auth/get-session through the mounted handler", async () => {

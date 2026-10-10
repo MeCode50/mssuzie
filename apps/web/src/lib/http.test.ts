@@ -8,10 +8,15 @@ import { assertSameOrigin, handle, json } from "./http";
 import { getClientIp } from "./ip";
 
 describe("getClientIp", () => {
-  it("prefers platform-set headers over a client-forgeable X-Forwarded-For chain", () => {
-    expect(getClientIp(new Headers({ "x-vercel-forwarded-for": "1.1.1.1", "x-forwarded-for": "6.6.6.6, 2.2.2.2" }))).toBe("1.1.1.1");
-    expect(getClientIp(new Headers({ "x-real-ip": "3.3.3.3", "x-forwarded-for": "6.6.6.6" }))).toBe("3.3.3.3");
-    expect(getClientIp(new Headers({ "x-forwarded-for": " 4.4.4.4 , 5.5.5.5" }))).toBe("4.4.4.4");
+  it("uses the address the trusted proxy appended, never one the client supplied", () => {
+    // behind one trusted proxy the LAST hop is the real client; anything before it was supplied by the client
+    expect(getClientIp(new Headers({ "x-forwarded-for": "6.6.6.6, 2.2.2.2" }))).toBe("2.2.2.2");
+    expect(getClientIp(new Headers({ "x-forwarded-for": " 4.4.4.4 " }))).toBe("4.4.4.4");
+    expect(getClientIp(new Headers({ "x-forwarded-for": "9.9.9.9, 8.8.8.8, 7.7.7.7" }), 2)).toBe("8.8.8.8");
+    expect(getClientIp(new Headers({ "x-forwarded-for": "7.7.7.7" }), 3)).toBe("7.7.7.7"); // fewer hops than expected: take what exists
+    expect(getClientIp(new Headers({ "x-real-ip": "3.3.3.3, 5.5.5.5" }))).toBe("3.3.3.3"); // no proxy header: local runs and tests
+    expect(getClientIp(new Headers({ "x-real-ip": "3.3.3.3", "x-forwarded-for": "6.6.6.6" }))).toBe("6.6.6.6"); // the proxy's word beats a client-sent X-Real-IP
+    expect(getClientIp(new Headers({ "x-vercel-forwarded-for": "1.1.1.1" }))).toBe("unknown"); // no platform-specific header is trusted
     expect(getClientIp(new Headers())).toBe("unknown");
   });
 });

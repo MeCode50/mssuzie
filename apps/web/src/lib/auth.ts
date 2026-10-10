@@ -38,7 +38,8 @@ export function createAuth(prisma: PrismaClient, env: Env) {
       customRules: { "/sign-in/email": { window: 60, max: 10 } },
     },
     advanced: {
-      ipAddress: { ipAddressHeaders: ["x-vercel-forwarded-for", "x-real-ip"] },
+      // Our own header, set (and any client-sent copy overwritten) by the auth route from the trusted proxy hop.
+      ipAddress: { ipAddressHeaders: ["x-client-ip"] },
       useSecureCookies: origin.startsWith("https://"),
       defaultCookieAttributes: { httpOnly: true, sameSite: "lax" },
     },
