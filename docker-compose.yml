@@ -1,0 +1,151 @@
+# Production stack for Coolify (Docker Compose build pack). Postgres is NOT here: it stays on Neon.
+#
+#   migrate  runs `prisma migrate deploy` once per deploy and exits. web and worker wait for it to succeed.
+#            Restarting web or worker never re-runs it. It will show as "exited" in Coolify; that is expected.
+#   web      the Next.js app. Give it your domain in Coolify and point it at port 3000.
+#   worker   the queue loop that runs the agents. No port is published.
+#
+# Every setting comes from environment variables that Coolify supplies. No .env file is baked into any image.
+# `${NAME:?message}` = required (the deploy stops with that message if it is missing).
+# `${NAME:-default}` = optional (an empty value is treated as "not set").
+
+name: mssuzie
+
+x-app-env: &app-env
+  NODE_ENV: production
+
+  # --- Database (Neon) ---
+  DATABASE_URL: ${DATABASE_URL:?Neon POOLED connection string}
+
+  # --- Secrets ---
+  ENCRYPTION_KEY: ${ENCRYPTION_KEY:?32 random bytes, base64 (openssl rand -base64 32)}
+  BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?32+ characters (openssl rand -base64 32)}
+  ACTION_LINK_SECRET: ${ACTION_LINK_SECRET:?32+ characters, signs the links in emails (openssl rand -base64 32)}
+
+  # --- Public address (https) and the reverse proxy in front of the app ---
+  BETTER_AUTH_URL: ${BETTER_AUTH_URL:?the public https address, e.g. https://scheduling.example.com}
+  TRUSTED_PROXY_HOPS: ${TRUSTED_PROXY_HOPS:-1}
+
+  # --- Language model (Gemini through its OpenAI-compatible API) ---
+  LLM_API_KEY: ${LLM_API_KEY:?model provider API key}
+  LLM_MODEL_MAIN: ${LLM_MODEL_MAIN:?main model name}
+  LLM_MODEL_SMALL: ${LLM_MODEL_SMALL:?small model name}
+  LLM_BASE_URL: ${LLM_BASE_URL:-}
+  LLM_REASONING_EFFORT: ${LLM_REASONING_EFFORT:-}
+  LLM_REQUESTS_PER_MINUTE: ${LLM_REQUESTS_PER_MINUTE:-}
+  # USD per million tokens. 0 means "unpriced" (the daily spend cap then never triggers).
+  LLM_PRICE_MAIN_INPUT_PER_1M: ${LLM_PRICE_MAIN_INPUT_PER_1M:-0}
+  LLM_PRICE_MAIN_OUTPUT_PER_1M: ${LLM_PRICE_MAIN_OUTPUT_PER_1M:-0}
+  LLM_PRICE_SMALL_INPUT_PER_1M: ${LLM_PRICE_SMALL_INPUT_PER_1M:-0}
+  LLM_PRICE_SMALL_OUTPUT_PER_1M: ${LLM_PRICE_SMALL_OUTPUT_PER_1M:-0}
+  DAILY_SPEND_CAP_USD: ${DAILY_SPEND_CAP_USD:-}
+
+  # --- Rescheduling ---
+  RESCHEDULE_MIN_NOTICE_HOURS: ${RESCHEDULE_MIN_NOTICE_HOURS:-}
+  RESCHEDULE_SCHEDULER_TIER: ${RESCHEDULE_SCHEDULER_TIER:-}
+
+  # --- Google Calendar ---
+  GOOGLE_SERVICE_ACCOUNT_JSON_BASE64: ${GOOGLE_SERVICE_ACCOUNT_JSON_BASE64:-}
+  GOOGLE_CALENDAR_ID: ${GOOGLE_CALENDAR_ID:-}
+
+  # --- Email. Real mail only ever goes to EMAIL_ALLOWLIST (everyone else is redirected to DEMO_INBOX). ---
+  # Dry run is ON unless you set EMAIL_DRY_RUN=0: nothing is sent until you say so.
+  EMAIL_DRY_RUN: ${EMAIL_DRY_RUN:-1}
+  EMAIL_ALLOWLIST: ${EMAIL_ALLOWLIST:?comma-separated addresses that may receive real mail}
+  DEMO_INBOX: ${DEMO_INBOX:-}
+  EMAIL_FROM: ${EMAIL_FROM:-}
+  SMTP_HOST: ${SMTP_HOST:-}
+  SMTP_PORT: ${SMTP_PORT:-}
+  SMTP_USER: ${SMTP_USER:-}
+  SMTP_PASS: ${SMTP_PASS:-}
+
+x-hardening: &hardening
+  init: true
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
+
+services:
+  migrate:
+    <<: *hardening
+    build:
+      context: .
+      dockerfile: Dockerfile.migrate
+    image: mssuzie-migrate
+    restart: "no"
+    environment:
+      # Migrations need Neon's DIRECT (non-pooled) connection; the pooler cannot run them.
+      DATABASE_URL: ${DATABASE_URL:?Neon POOLED connection string}
+      DIRECT_URL: ${DIRECT_URL:?Neon DIRECT (non-pooled) connection string, used only for migrations}
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "0.5"
+
+  web:
+    <<: *hardening
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    image: mssuzie-web
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      <<: *app-env
+      PORT: "3000"
+    # Not published on the host: Coolify's proxy reaches it on the internal network. Set your domain on this
+    # service in Coolify and map it to port 3000.
+    expose:
+      - "3000"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    stop_grace_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "0.5"
+
+  worker:
+    <<: *hardening
+    build:
+      context: .
+      dockerfile: apps/worker/Dockerfile
+    image: mssuzie-worker
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      <<: *app-env
+      WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-}
+      WORKER_POLL_MS: ${WORKER_POLL_MS:-}
+      WORKER_SHUTDOWN_GRACE_MS: ${WORKER_SHUTDOWN_GRACE_MS:-60000}
+      WORKER_HEALTH_PORT: "8081"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8081/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    # SIGTERM: stop claiming, let running jobs finish (up to WORKER_SHUTDOWN_GRACE_MS = 60 s), hand the rest back to
+    # the queue. Docker must wait longer than that before it sends SIGKILL.
+    stop_grace_period: 75s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "0.5"
