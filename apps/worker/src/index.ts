@@ -1,8 +1,17 @@
 import { config as loadDotenv } from "dotenv";
 import { createIntegrations, createLogger, errorFields, getPrisma, loadEnv, loadLlmConfig } from "@mssuzie/core";
+import { startHealthServer } from "./health";
 import { Worker } from "./worker";
 
 loadDotenv({ path: "../../.env", quiet: true });
+
+const nonNegativeInt = (name: string, fallback: number): number => {
+  const raw = process.env[name];
+  if (raw === undefined || raw === "") return fallback;
+  const n = Number(raw);
+  if (!Number.isInteger(n) || n < 0) throw new Error(`${name} must be a non-negative integer`);
+  return n;
+};
 
 const positiveInt = (name: string, fallback: number): number => {
   const raw = process.env[name];
@@ -30,6 +39,11 @@ async function main(): Promise<void> {
   });
   worker.start();
 
+  // WORKER_HEALTH_PORT=0 turns the health endpoint off.
+  const healthPort = nonNegativeInt("WORKER_HEALTH_PORT", 8081);
+  const health = healthPort > 0 ? await startHealthServer(healthPort, () => worker.health()) : null;
+  if (health) logger.info("health endpoint listening", { port: healthPort });
+
   let shuttingDown = false;
   const shutdown = async (signal: string): Promise<void> => {
     if (shuttingDown) return;
@@ -37,6 +51,7 @@ async function main(): Promise<void> {
     logger.info("shutdown signal received", { signal });
     try {
       await worker.stop();
+      health?.close();
       await prisma.$disconnect();
       process.exit(0);
     } catch (err) {

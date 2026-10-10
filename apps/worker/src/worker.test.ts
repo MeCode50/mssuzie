@@ -168,6 +168,29 @@ describe.skipIf(!TEST_DATABASE_URL)("worker (real Postgres)", () => {
     expect(await db.prisma.run.findUniqueOrThrow({ where: { id: run!.id } })).toMatchObject({ status: "queued", lockedBy: null, claimCount: 0 });
   });
 
+  it("reports healthy while it polls, stalled when it has been silent too long, and draining once stopping", async () => {
+    const w = make();
+    expect(w.health().state).toBe("running");
+    w.start();
+    await sleep(100);
+    expect(w.health()).toMatchObject({ ok: true, state: "running", activeRuns: 0 });
+    expect(w.health(Date.now() + 10 * 60_000)).toMatchObject({ ok: false, state: "stalled" }); // no sign of life for ten minutes
+    await w.stop();
+    expect(w.health()).toMatchObject({ ok: false, state: "draining" });
+  });
+
+  it("a long run does not look stalled: its heartbeat counts as sign of life", async () => {
+    await makeRuns(1);
+    const { fn } = fakeExecute(1500);
+    const w = make({ execute: fn, heartbeatMs: 200 });
+    w.start();
+    await waitFor(() => w.activeRuns.length === 1);
+    await sleep(600);
+    expect(w.health().ok).toBe(true);
+    await waitFor(() => w.activeRuns.length === 0, 5000);
+    await w.stop();
+  });
+
   it("stops promptly when idle, even with a long poll interval", async () => {
     const w = make({ pollIntervalMs: 30_000 });
     w.start();

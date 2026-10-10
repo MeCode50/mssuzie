@@ -41,6 +41,8 @@ export class Worker {
   private readonly inFlight = new Map<string, Promise<void>>();
   private slots: Promise<void>[] = [];
   private maintenanceTimer: NodeJS.Timeout | null = null;
+  /** Last time the queue loop or a running job's heartbeat proved this worker is alive and reaching the database. */
+  private lastActivityAt = Date.now();
 
   constructor(options: WorkerOptions) {
     this.id = options.workerId ?? `${hostname()}:${process.pid}:${randomBytes(3).toString("hex")}`;
@@ -52,6 +54,16 @@ export class Worker {
 
   get activeRuns(): string[] {
     return [...this.inFlight.keys()];
+  }
+
+  /**
+   * For the container health check. Healthy means: not shutting down, and the queue loop (or a running job's
+   * heartbeat) has reached the database recently. A long run does not look stalled: its heartbeat counts.
+   */
+  health(now = Date.now()): { ok: boolean; state: "running" | "draining" | "stalled"; activeRuns: number; idleSeconds: number } {
+    const idleMs = now - this.lastActivityAt;
+    const state = this.stopping ? "draining" : idleMs > Math.max(60_000, this.o.heartbeatMs * 2) ? "stalled" : "running";
+    return { ok: state === "running", state, activeRuns: this.inFlight.size, idleSeconds: Math.round(idleMs / 1000) };
   }
 
   start(): void {
@@ -100,6 +112,7 @@ export class Worker {
     while (!this.stopping) {
       try {
         const claimed = await claimRun(this.o.prisma, this.id);
+        this.lastActivityAt = Date.now();
         backoff = 0;
         if (!claimed) {
           await this.sleep(this.o.pollIntervalMs);
@@ -120,7 +133,10 @@ export class Worker {
     const log = this.o.logger.child({ runId, workerId: this.id });
     const heartbeat = setInterval(() => {
       touchLock(this.o.prisma, runId, this.id)
-        .then((held) => held || log.warn("lost the lock on a running run"))
+        .then((held) => {
+          this.lastActivityAt = Date.now();
+          if (!held) log.warn("lost the lock on a running run");
+        })
         .catch((err: unknown) => log.warn("heartbeat failed", errorFields(err)));
     }, this.o.heartbeatMs);
     try {
