@@ -123,8 +123,9 @@ export async function runReschedulePipeline(input: RescheduleInput, deps: Resche
       return { ok: false, error };
     }
   }
-  const skip = async (agent: AgentName, reason: string) => {
-    failures[agent] = reason;
+  /** `because failure` marks a step that could not run since an earlier step broke; otherwise the skip is deliberate. */
+  const skip = async (agent: AgentName, reason: string, becauseFailure = true) => {
+    if (becauseFailure) failures[agent] = reason;
     await sink({ agent, status: "skipped", attempt: attemptOf(agent), error: reason, tokensIn: 0, tokensOut: 0, durationMs: 0, costUsd: 0 });
   };
   const empty = (outcome: RescheduleResult["outcome"], extra: Partial<RescheduleResult> = {}): RescheduleResult => ({
@@ -193,7 +194,7 @@ export async function runReschedulePipeline(input: RescheduleInput, deps: Resche
     await skip("scheduler_agent", flagged
       ? "Skipped: the message needs a person to look at it, so nothing was checked automatically."
       : tooSoon ? "Skipped: the class starts too soon to be moved automatically."
-      : "Skipped: there was no clear class and new time to check.");
+      : "Skipped: there was no clear class and new time to check.", false);
   }
 
   // 4. Policy check: plain code, always runs once the request is understood
@@ -210,7 +211,7 @@ export async function runReschedulePipeline(input: RescheduleInput, deps: Resche
   const policy = decided.ok ? decided.value : null;
 
   return {
-    outcome: policy && !failures.scheduler_agent && (scheduler || !checkable) ? "completed" : "partial",
+    outcome: policy && !failures.scheduler_agent ? "completed" : "partial",
     redactedMessage, tokenMap, intake: understood, resolved, scheduler, decision: policy?.decision ?? null, serialized: policy?.serialized ?? null, ctx, failures,
   };
 }

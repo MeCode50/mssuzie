@@ -90,6 +90,7 @@ describe.skipIf(!TEST_DATABASE_URL)("rescheduling pipeline: Intake, Scheduler (t
       expect(r.request).toMatchObject({ decision: "escalated", decidedBy: "policy" });
       expect(r.request.reason).toContain("12-hour minimum notice");
       expect(agentRows(r.steps, "scheduler_agent")).toEqual(["skipped"]); // plain code decided; no model call was needed
+      expect(r.summary).toMatchObject({ outcome: "completed", failures: {} }); // a deliberate skip is not a failure
       expect(r.steps.filter((s) => s.kind === "tool")).toHaveLength(0);
     });
   });
