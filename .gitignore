@@ -20,3 +20,4 @@ packages/core/eval-results/
 # Next.js generated
 next-env.d.ts
 *.tsbuildinfo
+.local-demo-key
