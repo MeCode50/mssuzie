@@ -1,5 +1,9 @@
 node_modules/
 .next/
+.next-*/
+test-results/
+playwright-report/
+apps/web/e2e/.auth/
 dist/
 .env
 .env.*

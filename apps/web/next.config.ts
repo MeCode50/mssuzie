@@ -22,6 +22,8 @@ export const apiSecurityHeaders = [
 ];
 
 const config: NextConfig = {
+  // The browser tests build into their own directory so they can run beside a dev server.
+  distDir: process.env.NEXT_DIST_DIR || ".next",
   reactStrictMode: true,
   poweredByHeader: false,
   // The shared package ships TypeScript source.
