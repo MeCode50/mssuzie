@@ -22,6 +22,10 @@ export const apiSecurityHeaders = [
 ];
 
 const config: NextConfig = {
+  // A self-contained server for the Docker image. The trace root is the repo root so the workspace package
+  // (packages/core) and its dependencies are copied along.
+  output: "standalone",
+  outputFileTracingRoot: path.resolve(import.meta.dirname, "../.."),
   // The browser tests build into their own directory so they can run beside a dev server.
   distDir: process.env.NEXT_DIST_DIR || ".next",
   reactStrictMode: true,

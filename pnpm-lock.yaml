@@ -10,6 +10,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@fontsource-variable/nunito-sans':
+        specifier: 5.3.0
+        version: 5.3.0
       '@mssuzie/core':
         specifier: workspace:*
         version: link:../../packages/core
@@ -78,6 +81,9 @@ importers:
       '@types/node':
         specifier: ^22.20.5
         version: 22.20.5
+      esbuild:
+        specifier: 0.28.2
+        version: 0.28.2
       typescript:
         specifier: 7.0.2
         version: 7.0.2
@@ -400,6 +406,9 @@ packages:
     engines: {node: '>=18'}
     cpu: [x64]
     os: [win32]
+
+  '@fontsource-variable/nunito-sans@5.3.0':
+    resolution: {integrity: sha512-Vk1PSfckNDwgw2yGcsvJP3o/0zEW8Rp6KzbD8Ql/6iRHQshnhhAjt+cSIfAUyp5vQuSlleGHFW2LfYaaex0diw==}
 
   '@img/colour@1.1.0':
     resolution: {integrity: sha512-Td76q7j57o/tLVdgS746cYARfSyxk8iEfRxewL9h4OMzYhbW4TAcppl0mT4eyqXddh6L/jwoM75mo7ixa/pCeQ==}
@@ -2393,6 +2402,8 @@ snapshots:
 
   '@esbuild/win32-x64@0.28.2':
     optional: true
+
+  '@fontsource-variable/nunito-sans@5.3.0': {}
 
   '@img/colour@1.1.0':
     optional: true

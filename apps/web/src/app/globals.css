@@ -3,7 +3,7 @@
 /* MsSuzie Session Copilot design tokens. Every text/background pair below meets WCAG 2.2 AA (4.5:1);
    --color-field meets the 3:1 requirement for form-control boundaries. */
 @theme {
-  --font-sans: var(--font-nunito), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Nunito Sans Variable", ui-sans-serif, system-ui, sans-serif;
 
   --color-cream: #fbf6ee;
   --color-surface: #ffffff;

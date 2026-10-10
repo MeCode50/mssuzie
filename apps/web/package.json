@@ -11,6 +11,7 @@
     "e2e": "bash ../../scripts/e2e.sh"
   },
   "dependencies": {
+    "@fontsource-variable/nunito-sans": "5.3.0",
     "@mssuzie/core": "workspace:*",
     "@next/env": "16.4.0",
     "better-auth": "1.7.7",
