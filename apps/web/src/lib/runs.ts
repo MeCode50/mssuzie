@@ -8,7 +8,7 @@ import type { RequestContext } from "./http";
 import { IDEMPOTENCY_KEY, type CreateSessionInput } from "./schemas";
 import { humanize } from "./display";
 import { learnerScope, type Actor } from "./session";
-import { summarizeStep } from "./summaries";
+import { summarizeStep, summarizeTool } from "./summaries";
 
 const TEN_MINUTES = 600_000;
 const AGENTS: AgentName[] = ["privacy_guard", "session_analyst", "progress_monitor", "learning_planner", "parent_reporter"];
@@ -118,7 +118,8 @@ export async function createSessionRun(ctx: RequestContext, actor: Actor, input:
 /** Load a run the actor may see, or 404 (also for someone else's run, so existence is not revealed). */
 export async function loadRunFor(ctx: Pick<RequestContext, "c">, actor: Actor, id: string) {
   const run = await ctx.c.prisma.run.findFirst({
-    where: { id, session: { learner: learnerScope(actor) } },
+    // A run belongs either to a tutoring session (Session Copilot) or to a reschedule request.
+    where: { id, OR: [{ session: { learner: learnerScope(actor) } }, { rescheduleRequest: { guardian: { learner: learnerScope(actor) } } }] },
     include: { session: { include: { learner: { select: { id: true, displayName: true } } } } },
   });
   if (!run) throw errors.notFound("That run");
@@ -126,16 +127,19 @@ export async function loadRunFor(ctx: Pick<RequestContext, "c">, actor: Actor, i
 }
 
 type StepRow = {
-  seq: number; agent: AgentName; status: string; attempt: number; error: string | null; model: string | null;
+  seq: number; agent: AgentName; kind?: string; toolName?: string | null; inputJson?: unknown; status: string; attempt: number; error: string | null; model: string | null;
   tokensIn: number; tokensOut: number; durationMs: number; costUsd: { toString(): string } | number; outputJson: unknown;
 };
 
 /** The browser-safe view of one run_steps row (no raw output; a plain-language summary instead). */
 export function stepView(s: StepRow) {
   return {
-    seq: s.seq, agent: s.agent, status: s.status, attempt: s.attempt, error: s.error, model: s.model,
+    seq: s.seq, agent: s.agent, kind: s.kind ?? "agent", toolName: s.toolName ?? null,
+    // Tool arguments are dates and counts the Scheduler asked for; never names or contact details.
+    input: s.kind === "tool" ? (s.inputJson ?? null) : null,
+    status: s.status, attempt: s.attempt, error: s.error, model: s.model,
     tokensIn: s.tokensIn, tokensOut: s.tokensOut, durationMs: s.durationMs, costUsd: Number(s.costUsd),
-    summary: s.status === "completed" ? summarizeStep(s.agent, s.outputJson) : null,
+    summary: s.status !== "completed" ? null : s.kind === "tool" ? summarizeTool(s.toolName ?? null, s.outputJson) : summarizeStep(s.agent, s.outputJson),
   };
 }
 

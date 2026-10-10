@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { createLogger, resetDemoData, seedAccounts, type Env } from "@mssuzie/core";
-import { createTestDb, type TestDb } from "@mssuzie/core/testing";
+import { createTestDb, testIntegrations, type TestDb } from "@mssuzie/core/testing";
 import { createAuth } from "@/lib/auth";
 import type { Container } from "@/lib/container";
 import { setContainer } from "@/lib/container";
@@ -17,7 +17,7 @@ export type Who = keyof typeof EMAILS;
 
 export interface TestApp {
   db: TestDb;
-  c: Container & { lines: Record<string, unknown>[] };
+  c: Container & { lines: Record<string, unknown>[]; integrations: ReturnType<typeof testIntegrations> };
   env: Env;
   /** Sign in and return a Cookie header value. Each call can use its own client IP. */
   login(who: Who, ip?: string): Promise<string>;
@@ -40,7 +40,8 @@ export async function startTestApp(envOver: Record<string, string> = {}): Promis
 
   const lines: Record<string, unknown>[] = [];
   const logger = createLogger({ service: "web-test" }, (line) => void lines.push(JSON.parse(line)));
-  const c = { env, prisma: db.prisma, logger, auth: createAuth(db.prisma, env), lines };
+  const integrations = testIntegrations();
+  const c = { env, prisma: db.prisma, logger, auth: createAuth(db.prisma, env), lines, integrations };
   setContainer(c);
 
   return {

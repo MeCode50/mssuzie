@@ -1,4 +1,6 @@
-import { AnalysisSchema, GuardOutputSchema, MonitorSchema, PlanSchema, ReportSchema, type AgentName } from "@mssuzie/core";
+import { AnalysisSchema, GuardOutputSchema, IntakeSchema, MonitorSchema, PlanSchema, ReportSchema, SlotReportSchema, type AgentName } from "@mssuzie/core";
+import { z } from "zod";
+import { humanizeTokens } from "./display";
 
 const STATUS_LABEL = { on_track: "On track", watch: "Watch", at_risk: "At risk" } as const;
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
@@ -28,7 +30,54 @@ export function summarizeStep(agent: AgentName, output: unknown): string | null 
       const p = ReportSchema.safeParse(output);
       return p.success ? `Draft ready: ${plural(p.data.wins.length, "win")} and one thing to try at home` : null;
     }
+    case "intake_agent": {
+      const p = IntakeSchema.safeParse(output);
+      return p.success ? `${humanizeTokens(p.data.summary)} (${Math.round(p.data.confidence * 100)}% sure)` : null;
+    }
+    case "scheduler_agent": {
+      const p = SlotReportSchema.safeParse(output);
+      if (!p.success) return null;
+      return p.data.requestedSlot.available ? "The requested time looks free" : `The requested time is not available${p.data.alternatives.length ? `; found ${plural(p.data.alternatives.length, "alternative")}` : ""}`;
+    }
+    case "policy_check": {
+      const p = PolicyOutput.safeParse(output);
+      return p.success ? `${DECISION_LABEL[p.data.outcome]}: ${humanizeTokens(p.data.reason)}` : null;
+    }
+    case "calendar_step": {
+      const p = CalendarOutput.safeParse(output);
+      return p.success ? "Calendar updated with the new time" : "Calendar updated";
+    }
+    case "notifier_agent": {
+      const rows = Array.isArray(output) ? output : [];
+      return rows.length === 0 ? "Messages recorded" : `${plural(rows.length, "message")} ${rows.every((r) => r?.status === "dry_run") ? "recorded (dry run)" : "sent"}`;
+    }
     default:
-      return null; // rescheduling agents get their summaries with the rescheduling screens
+      return null;
+  }
+}
+
+const DECISION_LABEL = { auto_apply: "Moving it", propose: "Offering other times", escalate: "Needs a person" } as const;
+const PolicyOutput = z.object({ outcome: z.enum(["auto_apply", "propose", "escalate"]), reason: z.string() });
+const CalendarOutput = z.object({ eventId: z.string() });
+
+const count = (v: unknown, key: string): number | null => (typeof (v as Record<string, unknown> | null)?.[key] === "number" ? ((v as Record<string, number>)[key] ?? null) : null);
+
+/** A short line for one tool call nested under the Scheduler. Reads only counts, never names. */
+export function summarizeTool(tool: string | null, output: unknown): string | null {
+  switch (tool) {
+    case "get_bookings": {
+      const n = count(output, "count");
+      return n === null ? null : plural(n, "class");
+    }
+    case "get_tutor_availability": {
+      const o = output as { working?: boolean; windows?: unknown[] } | null;
+      return o?.working === false ? "Not working that day" : `Working hours: ${plural(o?.windows?.length ?? 0, "window")}`;
+    }
+    case "find_free_slots": {
+      const n = count(output, "count");
+      return n === null ? null : plural(n, "free slot");
+    }
+    default:
+      return null;
   }
 }

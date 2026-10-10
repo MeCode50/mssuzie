@@ -1,7 +1,8 @@
 import { getSessionCookie } from "better-auth/cookies";
 import { NextResponse, type NextRequest } from "next/server";
 
-const PUBLIC_PATHS = new Set(["/login"]);
+// /r/accept is the page a parent reaches from an email link: the single-use signed token is the credential.
+const PUBLIC_PATHS = new Set(["/login", "/r/accept"]);
 
 /** Content-Security-Policy with a fresh nonce per request: no inline script is allowed without it. */
 export function buildCsp(nonce: string, dev: boolean): string {
