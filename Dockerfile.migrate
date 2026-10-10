@@ -1,0 +1,33 @@
+# syntax=docker/dockerfile:1.7
+# One-off database migration (`prisma migrate deploy`, the same thing `pnpm db:deploy` runs). Build from the repo root:
+#   docker build -f Dockerfile.migrate -t mssuzie-migrate .
+# It runs once per deploy, before web and worker start (see docker-compose.yml); it is NOT part of either app's
+# start-up, so restarting a container never re-runs migrations. `migrate deploy` is idempotent and takes a database
+# lock, so overlapping runs are safe.
+#
+# Needs DIRECT_URL: Neon's direct (non-pooled) connection. Migrations cannot go through the connection pooler.
+# Deliberately NOT a copy of the workspace: just the Prisma CLI, the schema and the migrations, so the image stays
+# small. Keep these two versions in step with packages/core/package.json.
+
+# Base image pinned by digest (a tag can change under you). Refresh it now and then to pick up security patches:
+#   docker buildx imagetools inspect node:22-alpine   (use the top-level Digest)
+ARG NODE_IMAGE=node:22-alpine@sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402
+FROM ${NODE_IMAGE}
+ENV NODE_ENV=production
+LABEL org.opencontainers.image.title="mssuzie-migrate" \
+      org.opencontainers.image.description="One-off database migration for MsSuzie" \
+      org.opencontainers.image.source="https://github.com/MeCode50/mssuzie"
+RUN apk add --no-cache openssl
+WORKDIR /migrate
+RUN npm init -y >/dev/null \
+ && npm pkg set scripts.db:deploy="prisma migrate deploy" \
+ && npm install --no-audit --no-fund --save-exact prisma@7.10.0 dotenv@18.0.7 \
+ # the embedded database used by `prisma dev` is never needed here
+ && rm -rf node_modules/@electric-sql \
+ && npm cache clean --force \
+ && rm -rf /root/.npm /tmp/* \
+ && chown -R node:node /migrate
+COPY --chown=node:node packages/core/prisma ./prisma
+COPY --chown=node:node packages/core/prisma.config.ts ./
+USER node
+CMD ["npm", "run", "db:deploy"]

@@ -1,0 +1,25 @@
+# Nothing secret, local or generated goes into an image. Secrets arrive as environment variables at run time.
+.git
+.gitignore
+.claude
+.env
+.env.*
+.local-demo-key
+**/node_modules
+**/.next
+**/.next-*
+**/test-results
+**/playwright-report
+**/coverage
+**/dist
+**/*.log
+**/*.tsbuildinfo
+apps/web/e2e/.auth
+packages/core/src/generated
+packages/core/eval-results
+scripts
+docs
+*.md
+Dockerfile*
+**/Dockerfile*
+docker-compose*.yml
