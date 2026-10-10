@@ -64,7 +64,6 @@ function printDecision(d: SerializedDecision | null, parsed: Record<string, any>
   if (!d) return void console.log("No decision was reached (see the failed steps above).");
   const label = { auto_apply: "AUTO-APPLY", propose: "PROPOSE ALTERNATIVES", escalate: "ESCALATE TO OPS" }[d.outcome];
   console.log(`DECISION: ${label}   (${d.code})`);
-  if (d.outcome === "auto_apply") console.log("  (This step only decides: the booking, calendar and emails are not changed yet.)");
   console.log(`Reason:   ${d.reason}`);
   const intake = parsed?.intake;
   if (intake) console.log(`Understood: ${intake.summary}  [intent ${intake.intent}, child ${intake.childReference}, confidence ${Math.round(intake.confidence * 100)}%]`);
@@ -109,6 +108,14 @@ async function main(): Promise<void> {
   const parsed = request.parsedJson as { policy: SerializedDecision | null; intake: unknown } | null;
   printDecision(parsed?.policy ?? null, parsed as Record<string, any> | null, guardian.timezone);
   if (request.decision) console.log(`Recorded:   request ${request.decision}${request.decidedBy ? ` by ${request.decidedBy}` : ""}`);
+  if (request.appliedFromAt && request.appliedToAt) {
+    console.log(`Moved:      ${formatForBoth(request.appliedFromAt, guardian.timezone, guardian.learner.tutor.timezone)}\n        →   ${formatForBoth(request.appliedToAt, guardian.timezone, guardian.learner.tutor.timezone)}`);
+  }
+  const notifications = await prisma.notification.findMany({ where: { requestId }, orderBy: { createdAt: "asc" } });
+  for (const n of notifications) {
+    const where = n.toEmail ? `${n.toEmail}${n.intendedEmail ? ` (meant for ${n.intendedEmail})` : ""}` : "in-app";
+    console.log(`Message:    ${n.toRole}/${n.kind} → ${where} [${n.status}]  "${n.subject}"${n.error ? `  ! ${n.error}` : ""}`);
+  }
   console.log(`\nRun ${runId}: ${summary.outcome.toUpperCase()} · ${summary.totalTokens} tokens · ${usd(summary.costUsd)}   Request ${requestId}`);
   for (const [agent, why] of Object.entries(summary.failures)) console.log(`! ${agent}: ${why}`);
   process.exitCode = summary.outcome === "failed" ? 1 : 0;
