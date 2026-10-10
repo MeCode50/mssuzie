@@ -1,7 +1,7 @@
 import { randomBytes, randomUUID } from "node:crypto";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
-  createLogger, createMockExecutor, createMockToolExecutor, resetDemoData, seedAccounts, type ExecuteDeps, type LlmConfig, type RunSummary,
+  createLogger, createMockExecutor, createRescheduleRequest, createMockToolExecutor, resetDemoData, seedAccounts, type ExecuteDeps, type LlmConfig, type RunSummary,
 } from "@mssuzie/core";
 import { createTestDb, TEST_DATABASE_URL, type TestDb } from "@mssuzie/core/testing";
 import { Worker, type WorkerOptions } from "./worker";
@@ -187,14 +187,39 @@ describe.skipIf(!TEST_DATABASE_URL)("worker (real Postgres)", () => {
     for (const secret of ["Leo", "Hartmann", "Katrin", "Brigid", "Bristol"]) expect(all).not.toContain(secret);
   });
 
-  async function resetAndRunReal(): Promise<void> {
+  it("dispatches a queued reschedule run to the rescheduling pipeline, not the session one", async () => {
+    const sc = await seedDemo();
+    const { requestId, runId } = await createRescheduleRequest(db.prisma, {
+      guardianId: sc.conflict.guardianId, encryptionKey: KEY,
+      message: "Hi, can we move Leo's class on the day to the new time please?",
+    });
+    const w = make(); // real executeAnyRun + mock LLM
+    w.start();
+    await waitFor(async () => ["completed", "partial", "failed"].includes(await statusOf(runId)), 20_000);
+    await w.stop();
+    const run = await db.prisma.run.findUniqueOrThrow({ where: { id: runId } });
+    expect(run.pipeline).toBe("reschedule");
+    expect(run.status).toBe("completed");
+    const steps = await db.prisma.runStep.findMany({ where: { runId } });
+    expect(steps.some((st) => st.agent === "intake_agent")).toBe(true);
+    expect(steps.some((st) => st.agent === "policy_check")).toBe(true);
+    const request = await db.prisma.rescheduleRequest.findUniqueOrThrow({ where: { id: requestId } });
+    expect(request.parsedJson).not.toBeNull();
+    expect(await db.prisma.parentUpdate.count({ where: { runId } })).toBe(0);
+  });
+
+  async function seedDemo() {
     await seedAccounts(db.prisma, {
       SEED_EBUN_EMAIL: "e@example.com", SEED_EBUN_PASSWORD: "ebun-password-123",
       SEED_OPS2_NAME: "O", SEED_OPS2_EMAIL: "o@example.com", SEED_OPS2_PASSWORD: "ops2-password-123",
       SEED_TUTOR1_NAME: "Daniel Reyes", SEED_TUTOR1_EMAIL: "t1@example.com", SEED_TUTOR1_PASSWORD: "tutor1-password-123",
       SEED_TUTOR2_NAME: "Sophie Lindqvist", SEED_TUTOR2_EMAIL: "t2@example.com", SEED_TUTOR2_PASSWORD: "tutor2-password-123",
     });
-    await resetDemoData(db.prisma, KEY);
+    return resetDemoData(db.prisma, KEY);
+  }
+
+  async function resetAndRunReal(): Promise<void> {
+    await seedDemo();
     const leo = await db.prisma.learner.findFirstOrThrow({ where: { displayName: { startsWith: "Leo" } } });
     const session = await db.prisma.tutoringSession.findFirstOrThrow({ where: { learnerId: leo.id }, orderBy: { heldAt: "desc" } });
     lines.length = 0;
