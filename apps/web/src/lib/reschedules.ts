@@ -90,7 +90,7 @@ function summary(r: Row) {
     id: r.id, createdAt: r.createdAt, channel: r.channel,
     runId: r.run?.id ?? null, runStatus: r.run?.status ?? null,
     decision: r.decision, decidedBy: r.decidedBy, reason: r.reason ? humanizeTokens(r.reason) : null,
-    understood: intake?.summary ? humanizeTokens(intake.summary) : null,
+    understood: intake?.summary ? humanizeTokens(intake.summary).replace(/^./, (c) => c.toUpperCase()) : null,
     needsPerson: r.decision === "escalated",
     guardian: { id: g.id, name: g.name, timezone: zoneParent },
     learner: { id: g.learner.id, displayName: g.learner.displayName },
@@ -115,7 +115,7 @@ export async function listRequests(ctx: Pick<RequestContext, "c">, actor: Actor,
   return { requests: rows.map(summary), counts: Object.fromEntries(counts) as Record<Filter, number> };
 }
 
-export async function requestDetail(ctx: RequestContext, actor: Actor, id: string) {
+export async function requestDetail(ctx: Pick<RequestContext, "c">, actor: Actor, id: string) {
   const { prisma, env } = ctx.c;
   const row = await prisma.rescheduleRequest.findFirst({
     where: { id, ...requestScope(actor) },

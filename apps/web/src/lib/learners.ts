@@ -36,7 +36,7 @@ export async function listLearners(ctx: Pick<RequestContext, "c">, actor: Actor,
   return { learners, counts };
 }
 
-export async function learnerDetail(ctx: RequestContext, actor: Actor, id: string) {
+export async function learnerDetail(ctx: Pick<RequestContext, "c">, actor: Actor, id: string) {
   const { prisma } = ctx.c;
   const learner = await prisma.learner.findFirst({
     where: { id, ...learnerScope(actor) },

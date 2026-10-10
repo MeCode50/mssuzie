@@ -1,3 +1,5 @@
+import type { BookingView, GuardianOption, RequestCounts, RequestDetail, RequestSummary } from "./reschedule-types";
+
 /** Browser-side API helpers. Every failure becomes a short, kind, plain-language message. */
 
 export class ApiClientError extends Error {
@@ -65,3 +67,27 @@ export function makeKeyKeeper(newKey: () => string = () => crypto.randomUUID()) 
     return last.key;
   };
 }
+
+// ---- Rescheduling ----
+
+
+export const fetchGuardians = () => apiFetch<{ guardians: GuardianOption[] }>("/api/guardians");
+
+export const sendReschedule = (input: { guardianId: string; message: string }) =>
+  apiFetch<{ requestId: string; runId: string }>("/api/reschedules", { method: "POST", json: input });
+
+export const fetchRequests = (filter: string) =>
+  apiFetch<{ requests: RequestSummary[]; counts: RequestCounts }>(`/api/reschedules?filter=${encodeURIComponent(filter)}`);
+
+export const fetchRequest = (id: string) => apiFetch<RequestDetail>(`/api/reschedules/${id}`);
+
+export const approveTime = (id: string, startsAt: string) =>
+  apiFetch<{ ok: true; alreadyApplied: boolean; problems: { step: string; error: string }[] }>(`/api/reschedules/${id}/approve`, { method: "POST", json: { startsAt } });
+
+export const declineRequest = (id: string, note: string) =>
+  apiFetch<{ ok: true; alreadyRejected: boolean; problems: { step: string; error: string }[] }>(`/api/reschedules/${id}/reject`, { method: "POST", json: { note } });
+
+export const fetchSchedule = (from: string, to: string) =>
+  apiFetch<{ bookings: BookingView[] }>(`/api/schedule?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`);
+
+export const acceptLink = (token: string) => apiFetch<{ ok: true; newTime: string; alreadyApplied: boolean }>("/api/accept", { method: "POST", json: { token } });

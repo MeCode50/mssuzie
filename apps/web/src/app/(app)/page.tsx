@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-// The dashboard arrives with the next build step; until then, the main task is the home screen.
+// Rescheduling is the main demo; Session Copilot stays one click away in the navigation.
 export default function Home() {
-  redirect("/sessions/new");
+  redirect("/reschedules");
 }

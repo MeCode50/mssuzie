@@ -3,7 +3,8 @@ import { z } from "zod";
 import { humanizeTokens } from "./display";
 
 const STATUS_LABEL = { on_track: "On track", watch: "Watch", at_risk: "At risk" } as const;
-const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
+const sentence = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
+const plural = (n: number, word: string) => `${n} ${n === 1 ? word : /(s|x|ch|sh)$/.test(word) ? `${word}es` : `${word}s`}`;
 
 /** One plain-language line for an agent card. Never includes tokens or personal details. */
 export function summarizeStep(agent: AgentName, output: unknown): string | null {
@@ -32,7 +33,7 @@ export function summarizeStep(agent: AgentName, output: unknown): string | null 
     }
     case "intake_agent": {
       const p = IntakeSchema.safeParse(output);
-      return p.success ? `${humanizeTokens(p.data.summary)} (${Math.round(p.data.confidence * 100)}% sure)` : null;
+      return p.success ? `${sentence(humanizeTokens(p.data.summary))} (${Math.round(p.data.confidence * 100)}% sure)` : null;
     }
     case "scheduler_agent": {
       const p = SlotReportSchema.safeParse(output);
@@ -48,8 +49,13 @@ export function summarizeStep(agent: AgentName, output: unknown): string | null 
       return p.success ? "Calendar updated with the new time" : "Calendar updated";
     }
     case "notifier_agent": {
-      const rows = Array.isArray(output) ? output : [];
-      return rows.length === 0 ? "Messages recorded" : `${plural(rows.length, "message")} ${rows.every((r) => r?.status === "dry_run") ? "recorded (dry run)" : "sent"}`;
+      const rows = (Array.isArray(output) ? output : []) as { to?: string; status?: string }[];
+      if (rows.length === 0) return "Messages recorded";
+      const emails = rows.filter((r) => r.to !== "ops");
+      const parts: string[] = [];
+      if (emails.length > 0) parts.push(`${plural(emails.length, "email")} ${emails.every((r) => r.status === "dry_run") ? "recorded (dry run)" : "sent"}`);
+      if (rows.some((r) => r.to === "ops")) parts.push("note left for Ops");
+      return parts.join(" · ");
     }
     default:
       return null;
