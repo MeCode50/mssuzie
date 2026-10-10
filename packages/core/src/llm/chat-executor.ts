@@ -1,5 +1,5 @@
 import { Agent, ModelBehaviorError, OpenAIChatCompletionsModel, Runner } from "@openai/agents";
-import { billed, createLlmClient, newLedger, toServiceError, wireSchema, type ChatExecutorOptions } from "./client";
+import { billed, createLlmClient, newLedger, toServiceError, wireSchema, type ChatExecutorOptions, type LlmClientHandle } from "./client";
 import type { LlmExecutor } from "./structured";
 
 export { REASONING_EFFORTS, type ChatExecutorOptions, type ReasoningEffort } from "./client";
@@ -9,8 +9,8 @@ export { REASONING_EFFORTS, type ChatExecutorOptions, type ReasoningEffort } fro
  * with a strict JSON-schema answer that our own code validates and retries. SDK tracing is off so
  * tutor notes never reach a trace store. Usage is metered at the HTTP layer (see client.ts).
  */
-export function createChatCompletionsExecutor(options: ChatExecutorOptions): LlmExecutor {
-  const { client, throttle, ledgers } = createLlmClient(options);
+export function createChatCompletionsExecutor(options: ChatExecutorOptions, handle: LlmClientHandle = createLlmClient(options)): LlmExecutor {
+  const { client, throttle, ledgers } = handle;
   const runner = new Runner({ tracingDisabled: true, traceIncludeSensitiveData: false });
   return async (req) => {
     const agent = new Agent({

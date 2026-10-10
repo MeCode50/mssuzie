@@ -1,5 +1,6 @@
 import type { LlmConfig } from "../llm/config";
 import { createMockExecutor, type MockOptions } from "../llm/mock-executor";
+import { createMockToolExecutor } from "../llm/mock-tool-executor";
 import type { LlmExecutor } from "../llm/structured";
 import { SEED_LEARNERS } from "../seed/index";
 import type { PipelineInput, StepEvent, StepSink } from "./types";
@@ -9,6 +10,8 @@ const leo = SEED_LEARNERS.find((l) => l.displayName === "Leo Hartmann")!;
 
 export const llmConfig = (opts: MockOptions = {}, execute?: LlmExecutor): LlmConfig => ({
   execute: execute ?? createMockExecutor(opts),
+  executeTools: createMockToolExecutor(),
+  schedulerTier: "small",
   models: { main: "test-main", small: "test-small" },
   pricing: { main: { inPer1M: 2, outPer1M: 8 }, small: { inPer1M: 0.5, outPer1M: 2 } },
   mock: true,

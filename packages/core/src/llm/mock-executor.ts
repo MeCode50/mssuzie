@@ -1,3 +1,4 @@
+import { scanForInjection } from "../reschedule/injection";
 import type { LlmExecutor, LlmRawResult, LlmRequest } from "./structured";
 
 export interface MockOptions {
@@ -101,12 +102,97 @@ function reporter(input: string): unknown {
   };
 }
 
+
+// ───────────── Intake agent (rescheduling): a small regex parser, honest about its limits ─────────────
+
+const WEEKDAYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+const MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+
+function addDays(date: string, days: number): string {
+  const d = new Date(`${date}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+/** "7pm", "7:30 am", "noon", "19:00" -> "HH:MM", in order of appearance. */
+function timesIn(text: string): string[] {
+  const out: { at: number; time: string }[] = [];
+  for (const m of text.matchAll(/\b(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b/g)) {
+    let h = Number(m[1]) % 12;
+    if (m[3] === "pm") h += 12;
+    out.push({ at: m.index ?? 0, time: `${String(h).padStart(2, "0")}:${m[2] ?? "00"}` });
+  }
+  for (const m of text.matchAll(/\b([01]?\d|2[0-3]):([0-5]\d)\b(?!\s*(am|pm))/g)) out.push({ at: m.index ?? 0, time: `${m[1]!.padStart(2, "0")}:${m[2]}` });
+  for (const m of text.matchAll(/\bnoon\b/g)) out.push({ at: m.index ?? 0, time: "12:00" });
+  return out.sort((a, b) => a.at - b.at).map((x) => x.time);
+}
+
+function dateIn(text: string, today: string, todayWeekday: number): string | null {
+  const iso = /\b(\d{4}-\d{2}-\d{2})\b/.exec(text);
+  if (iso) return iso[1]!;
+  if (/\bday after tomorrow\b/.test(text)) return addDays(today, 2);
+  if (/\btomorrow\b/.test(text)) return addDays(today, 1);
+  if (/\btoday\b|\btonight\b/.test(text)) return today;
+  const dm = new RegExp(`\\b(\\d{1,2})(?:st|nd|rd|th)?\\s+(${MONTHS.join("|")})[a-z]*`).exec(text);
+  if (dm) {
+    const month = MONTHS.indexOf(dm[2]!) + 1;
+    const year = Number(today.slice(0, 4));
+    const candidate = `${year}-${String(month).padStart(2, "0")}-${dm[1]!.padStart(2, "0")}`;
+    return candidate >= today ? candidate : `${year + 1}-${candidate.slice(5)}`;
+  }
+  for (let i = 0; i < 7; i++) {
+    if (new RegExp(`\\b${WEEKDAYS[i]}\\b`).test(text)) return addDays(today, (i - todayWeekday + 7) % 7);
+  }
+  return null;
+}
+
+function intake(input: string): unknown {
+  const ctx = JSON.parse(/Context \(JSON\): (.*)\n/.exec(input)?.[1] ?? "{}") as {
+    today: { date: string; weekday: string };
+    upcomingClasses: { id: string; date: string; time: string }[];
+  };
+  const message = block(input, "parent_message");
+  const lower = message.toLowerCase();
+  const todayWeekday = WEEKDAYS.indexOf(ctx.today.weekday.toLowerCase());
+  const moves = /\b(move|moved|resched\w*|change|switch|shift|swap|instead|earlier|later|postpone|bring forward|push|different time|do)\b/.test(lower);
+  const intent = /\b(cancel|call off|no longer need|won't be coming)\b/.test(lower) && !moves ? "cancel" : moves ? "reschedule" : "other";
+  const childReference = /\[CHILD_\d+\]/.test(message) ? "own_child" : /\[PERSON_\d+\]/.test(message) ? "other_child" : "not_stated";
+
+  const split = lower.lastIndexOf(" to ");
+  const before = split >= 0 ? lower.slice(0, split) : lower;
+  const after = split >= 0 ? lower.slice(split + 4) : lower;
+  const requestedTime = timesIn(after).at(-1) ?? null;
+  const classTime = split >= 0 ? timesIn(before)[0] ?? null : null;
+  const classDate = dateIn(before, ctx.today.date, todayWeekday);
+  const requestedDate = dateIn(after, ctx.today.date, todayWeekday) ?? classDate;
+
+  const ambiguities: string[] = [];
+  let candidates = ctx.upcomingClasses;
+  const wanted = classDate ?? (split < 0 ? requestedDate : null);
+  if (wanted) candidates = candidates.filter((c) => c.date === wanted);
+  if (classTime) candidates = candidates.filter((c) => c.time === classTime);
+  const soonest = ctx.upcomingClasses[0];
+  const meansNextClass = /\b(today|tonight|next class|upcoming class|in (an|a couple of|two|2) hours?)\b/.test(before) && !classTime;
+  const bookingId = meansNextClass && soonest ? soonest.id : (wanted || classTime || requestedDate) && candidates.length === 1 ? candidates[0]!.id : null;
+  if (!bookingId) ambiguities.push("Could not tell which class is meant.");
+  if (!requestedTime) ambiguities.push(/(morning|afternoon|evening|night)/.test(lower) ? "A time of day was given but no exact time." : "No new time was given.");
+  if (!requestedDate) ambiguities.push("No date was given for the new time.");
+
+  const suspicious = scanForInjection(message).suspicious;
+  const confidence = bookingId && requestedTime && requestedDate ? 0.92 : bookingId && requestedTime ? 0.7 : 0.4;
+  return {
+    intent, childReference, bookingId, requestedDate: requestedTime ? requestedDate : requestedDate, requestedTime, confidence,
+    ambiguities: ambiguities.slice(0, 5), injectionSuspected: suspicious, summary: `Parent wants to ${intent === "reschedule" ? "move a class" : intent === "cancel" ? "cancel a class" : "ask something else"}.`,
+  };
+}
+
 const HANDLERS: Record<string, (input: string) => unknown> = {
   privacy_guard: () => ({ findings: [] }),
   session_analyst: analyst,
   progress_monitor: monitor,
   learning_planner: planner,
   parent_reporter: reporter,
+  intake_agent: intake,
 };
 
 export function createMockExecutor(options: MockOptions = {}): LlmExecutor {

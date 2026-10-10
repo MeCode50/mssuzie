@@ -1,6 +1,9 @@
 import type { Env } from "../env";
 import { createMockExecutor } from "./mock-executor";
 import { createChatCompletionsExecutor } from "./chat-executor";
+import { createLlmClient } from "./client";
+import { createMockToolExecutor } from "./mock-tool-executor";
+import { createToolLoopExecutor, type ToolAgentExecutor } from "./tool-loop";
 import type { LlmExecutor, LlmUsage } from "./structured";
 
 export type AgentTier = "main" | "small";
@@ -12,6 +15,10 @@ export interface Price {
 
 export interface LlmConfig {
   execute: LlmExecutor;
+  /** For agents that act through tools (the rescheduling Scheduler). */
+  executeTools: ToolAgentExecutor;
+  /** Which model tier the Scheduler uses. It is mostly mechanical tool use, so "small" by default to save quota. */
+  schedulerTier: AgentTier;
   models: Record<AgentTier, string>;
   pricing: Record<AgentTier, Price>;
   mock: boolean;
@@ -29,6 +36,8 @@ export function loadLlmConfig(env: Env): LlmConfig {
     if (env.NODE_ENV === "production") throw new Error("MOCK_LLM must never be enabled in production");
     return {
       execute: createMockExecutor(),
+      executeTools: createMockToolExecutor(),
+      schedulerTier: env.RESCHEDULE_SCHEDULER_TIER,
       models: { main: "mock-main", small: "mock-small" },
       pricing: {
         main: { inPer1M: env.LLM_PRICE_MAIN_INPUT_PER_1M ?? 0, outPer1M: env.LLM_PRICE_MAIN_OUTPUT_PER_1M ?? 0 },
@@ -48,18 +57,22 @@ export function loadLlmConfig(env: Env): LlmConfig {
   };
   const missing = Object.entries(required).filter(([, v]) => v === undefined).map(([k]) => k);
   if (missing.length > 0) throw new Error(`Missing LLM configuration: ${missing.join(", ")}`);
+  const handle = createLlmClient({
+    apiKey: env.LLM_API_KEY as string,
+    baseUrl: env.LLM_BASE_URL,
+    reasoningEffort: env.LLM_REASONING_EFFORT,
+    reasoningTokenHeadroom: env.LLM_REASONING_TOKEN_HEADROOM,
+    requestTimeoutMs: env.LLM_REQUEST_TIMEOUT_MS,
+    maxRetries: env.LLM_MAX_RETRIES,
+    maxRetryDelayMs: env.LLM_MAX_RETRY_DELAY_MS,
+    maxConcurrency: env.LLM_MAX_CONCURRENCY,
+    requestsPerMinute: env.LLM_REQUESTS_PER_MINUTE,
+  });
   return {
-    execute: createChatCompletionsExecutor({
-      apiKey: env.LLM_API_KEY as string,
-      baseUrl: env.LLM_BASE_URL,
-      reasoningEffort: env.LLM_REASONING_EFFORT,
-      reasoningTokenHeadroom: env.LLM_REASONING_TOKEN_HEADROOM,
-      requestTimeoutMs: env.LLM_REQUEST_TIMEOUT_MS,
-      maxRetries: env.LLM_MAX_RETRIES,
-      maxRetryDelayMs: env.LLM_MAX_RETRY_DELAY_MS,
-      maxConcurrency: env.LLM_MAX_CONCURRENCY,
-      requestsPerMinute: env.LLM_REQUESTS_PER_MINUTE,
-    }),
+    // One client, so retries, throttling and usage metering are shared by every kind of agent.
+    execute: createChatCompletionsExecutor(handle.options, handle),
+    executeTools: createToolLoopExecutor(handle),
+    schedulerTier: env.RESCHEDULE_SCHEDULER_TIER,
     models: { main: env.LLM_MODEL_MAIN as string, small: env.LLM_MODEL_SMALL as string },
     pricing: {
       main: { inPer1M: env.LLM_PRICE_MAIN_INPUT_PER_1M as number, outPer1M: env.LLM_PRICE_MAIN_OUTPUT_PER_1M as number },

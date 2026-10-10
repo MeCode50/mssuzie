@@ -44,6 +44,8 @@ const EnvSchema = z
     ESTIMATED_RUN_COST_USD: z.coerce.number().nonnegative().default(0.05),
     // Rescheduling policy: a class cannot be moved by the agents if it starts sooner than this.
     RESCHEDULE_MIN_NOTICE_HOURS: z.coerce.number().nonnegative().default(12),
+    // Model tier for the Scheduler agent (mostly mechanical tool use; "small" saves quota).
+    RESCHEDULE_SCHEDULER_TIER: z.enum(["main", "small"]).default("small"),
     // Better Auth (web only). The web app refuses to start without them in production.
     BETTER_AUTH_SECRET: z.string().min(32, "BETTER_AUTH_SECRET must be at least 32 characters").optional(),
     BETTER_AUTH_URL: z.string().url().optional(),

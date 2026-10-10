@@ -1,7 +1,7 @@
 import { randomBytes, randomUUID } from "node:crypto";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
-  createLogger, createMockExecutor, resetDemoData, seedAccounts, type ExecuteDeps, type LlmConfig, type RunSummary,
+  createLogger, createMockExecutor, createMockToolExecutor, resetDemoData, seedAccounts, type ExecuteDeps, type LlmConfig, type RunSummary,
 } from "@mssuzie/core";
 import { createTestDb, TEST_DATABASE_URL, type TestDb } from "@mssuzie/core/testing";
 import { Worker, type WorkerOptions } from "./worker";
@@ -9,6 +9,8 @@ import { Worker, type WorkerOptions } from "./worker";
 const KEY = randomBytes(32).toString("base64");
 const llm: LlmConfig = {
   execute: createMockExecutor(),
+  executeTools: createMockToolExecutor(),
+  schedulerTier: "small",
   models: { main: "m", small: "s" },
   pricing: { main: { inPer1M: 1, outPer1M: 1 }, small: { inPer1M: 1, outPer1M: 1 } },
   mock: true,
