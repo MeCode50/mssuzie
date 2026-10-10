@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { hostname } from "node:os";
 import {
-  claimRun, errorFields, executeRun, LockLostError, releaseRun, requeueStuckRuns, STUCK_AFTER_MS,
+  claimRun, errorFields, executeAnyRun, LockLostError, releaseRun, requeueStuckRuns, STUCK_AFTER_MS,
   sweepExpiredTokenMaps, touchLock,
   type ExecuteDeps, type LlmConfig, type Logger, type PrismaClient, type RunSummary,
 } from "@mssuzie/core";
@@ -23,6 +23,8 @@ export interface WorkerOptions {
   stuckAfterMs?: number;
   /** On stop(), how long to let in-flight runs finish before handing them back to the queue. */
   shutdownGraceMs?: number;
+  /** Reschedule notice policy in hours (for rescheduling runs). */
+  minNoticeHours?: number;
   /** Injectable for tests. */
   execute?: (deps: ExecuteDeps, runId: string) => Promise<RunSummary>;
 }
@@ -31,7 +33,7 @@ const MAX_BACKOFF_MS = 30_000;
 
 export class Worker {
   readonly id: string;
-  private readonly o: Required<Omit<WorkerOptions, "workerId" | "execute">> & Pick<WorkerOptions, "execute">;
+  private readonly o: Required<Omit<WorkerOptions, "workerId" | "execute" | "minNoticeHours">> & Pick<WorkerOptions, "execute" | "minNoticeHours">;
   private stopping = false;
   private readonly sleepers = new Set<() => void>();
   private readonly inFlight = new Map<string, Promise<void>>();
@@ -121,10 +123,10 @@ export class Worker {
     }, this.o.heartbeatMs);
     try {
       log.info("run claimed");
-      const execute = this.o.execute ?? executeRun;
+      const execute = this.o.execute ?? executeAnyRun;
       const summary = await execute(
         {
-          prisma: this.o.prisma, llm: this.o.llm, encryptionKey: this.o.encryptionKey, lockedBy: this.id,
+          prisma: this.o.prisma, llm: this.o.llm, encryptionKey: this.o.encryptionKey, lockedBy: this.id, minNoticeHours: this.o.minNoticeHours,
           onEvent: (e) =>
             log.info("step", {
               agent: e.agent, status: e.status, attempt: e.attempt, tokensIn: e.tokensIn,

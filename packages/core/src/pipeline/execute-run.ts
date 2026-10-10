@@ -4,6 +4,7 @@ import type { Prisma } from "../generated/prisma/client";
 import { buildKnownEntities, TokenMapSchema } from "../agents/privacy-guard/index";
 import type { LlmConfig } from "../llm/config";
 import { AnalysisSchema, MonitorSchema, PlanSchema, ReportSchema } from "../schemas/index";
+import { recordStepEvent } from "./record";
 import { runPipeline } from "./run-pipeline";
 import type { AgentName, PipelineInput, PriorOutputs, StepEvent } from "./types";
 
@@ -19,6 +20,8 @@ export class LockLostError extends Error {
 }
 
 export interface ExecuteDeps {
+  /** Reschedule notice policy in hours (used by rescheduling runs). */
+  minNoticeHours?: number;
   /** When set, results are only written while this worker still holds the run's lock. */
   lockedBy?: string;
   prisma: PrismaClient;
@@ -142,7 +145,7 @@ async function loadPrior(deps: ExecuteDeps, runId: string, sessionId: string) {
   return { prior, attempts, nextSeq: (rows.at(-1)?.seq ?? 0) + 1 };
 }
 
-async function assertLock(deps: ExecuteDeps, runId: string): Promise<void> {
+export async function assertLock(deps: ExecuteDeps, runId: string): Promise<void> {
   if (!deps.lockedBy) return;
   const held = await deps.prisma.run.count({ where: { id: runId, lockedBy: deps.lockedBy, status: "running" } });
   if (held === 0) throw new LockLostError(runId);
@@ -171,14 +174,7 @@ export async function executeRun(deps: ExecuteDeps, runId: string): Promise<RunS
     const result = await runPipeline(input, {
       llm, prior, attempts,
       sink: async (e) => {
-        await prisma.runStep.create({
-          data: {
-            runId, seq: seq++, agent: e.agent, status: e.status, attempt: e.attempt,
-            outputJson: e.output === undefined ? undefined : (e.output as Prisma.InputJsonValue),
-            error: e.error ?? null, model: e.model ?? null, tokensIn: e.tokensIn, tokensOut: e.tokensOut,
-            durationMs: e.durationMs, costUsd: e.costUsd,
-          },
-        });
+        await recordStepEvent(prisma, runId, seq++, e);
         deps.onEvent?.(e);
       },
       onGuard: async (g) => {

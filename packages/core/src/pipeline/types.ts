@@ -14,6 +14,11 @@ export type StepEventStatus = "running" | "completed" | "failed" | "skipped";
 /** One append-only event per step transition; becomes a run_steps row. */
 export interface StepEvent {
   agent: AgentName;
+  /** "tool" rows are tool calls nested under the agent on the live trace. */
+  kind?: "agent" | "tool";
+  toolName?: string;
+  /** The validated arguments a tool was called with. */
+  input?: unknown;
   status: StepEventStatus;
   attempt: number;
   /** Stored as output_json. Never contains real names, contacts or the token map. */

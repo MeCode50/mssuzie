@@ -21,7 +21,7 @@ async function main(): Promise<void> {
   const prisma = getPrisma(env.DATABASE_URL);
 
   const worker = new Worker({
-    prisma, llm, logger, encryptionKey: env.ENCRYPTION_KEY,
+    prisma, llm, logger, encryptionKey: env.ENCRYPTION_KEY, minNoticeHours: env.RESCHEDULE_MIN_NOTICE_HOURS,
     concurrency: positiveInt("WORKER_CONCURRENCY", 1),
     pollIntervalMs: positiveInt("WORKER_POLL_MS", 1000),
     shutdownGraceMs: positiveInt("WORKER_SHUTDOWN_GRACE_MS", 60_000),
