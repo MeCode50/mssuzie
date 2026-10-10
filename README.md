@@ -184,15 +184,66 @@ The queue is Postgres (`FOR UPDATE SKIP LOCKED`), with heartbeats, stuck-run rec
 shutdown. There is
 no Redis.
 
-## Deployment (planned shape, not yet exercised)
+## Deployment (Coolify, Docker Compose, Neon)
 
-Web on Vercel, Postgres on Neon, worker on Railway. None of this has been deployed from this
-repository yet, so treat
-it as a plan to follow and check: set the variables above on both services, run `pnpm db:deploy`
-once with the direct
-Neon URL, start the worker with `pnpm worker`, and set `NODE_ENV=production`, `EMAIL_ALLOWLIST` and
-`ACTION_LINK_SECRET`
-(production refuses to start without them).
+Production runs on a Coolify server from `docker-compose.yml`. Postgres stays on Neon; it is not in
+the compose file.
+
+| Service | What it is | Notes |
+| --- | --- | --- |
+| `migrate` | `prisma migrate deploy` (image from `Dockerfile.migrate`) | Runs once per deploy, then exits 0 (Coolify shows it as "exited": expected). `web` and `worker` wait for it. Restarting them never re-runs it. |
+| `web` | Next.js standalone server (`apps/web/Dockerfile`) | Port 3000, healthcheck `/api/health`. 512 MB, 0.5 CPU. |
+| `worker` | The queue loop (`apps/worker/Dockerfile`, bundled to one file) | Healthcheck on port 8081, never published. SIGTERM stops claiming, lets running jobs finish (up to 60 s) and hands the rest back to the queue. 512 MB, 0.5 CPU. |
+
+Images run as a non-root user, are built from a digest-pinned `node:22-alpine`, and contain no
+`.env`: every setting
+arrives as an environment variable. Image sizes: web about 235 MB, worker about 200 MB, migrate
+about 415 MB.
+
+**In Coolify:** create a new resource from this GitHub repository with the *Docker Compose* build
+pack
+(compose file `/docker-compose.yml`), set the environment variables below, then on the `web` service
+set your domain
+and map it to port 3000 (Coolify's proxy terminates HTTPS). Deploy.
+
+Required variables (the deploy stops with a message if one is missing):
+
+| Variable | What to put |
+| --- | --- |
+| `DATABASE_URL` | Neon **pooled** connection string |
+| `DIRECT_URL` | Neon **direct** (non-pooled) connection string. Used only by `migrate` |
+| `ENCRYPTION_KEY` | `openssl rand -base64 32` (never change it once data exists: it decrypts stored messages) |
+| `BETTER_AUTH_SECRET` | `openssl rand -base64 32` |
+| `ACTION_LINK_SECRET` | `openssl rand -base64 32` |
+| `BETTER_AUTH_URL` | Your public **https** address, e.g. `https://scheduling.example.com` |
+| `LLM_API_KEY`, `LLM_MODEL_MAIN`, `LLM_MODEL_SMALL` | The model provider key and the two model names |
+| `EMAIL_ALLOWLIST` | Comma-separated addresses that may receive real email |
+
+Optional: `LLM_BASE_URL`, `LLM_PRICE_*` (USD per million tokens; default 0), `DAILY_SPEND_CAP_USD`,
+`RESCHEDULE_MIN_NOTICE_HOURS`, `GOOGLE_SERVICE_ACCOUNT_JSON_BASE64` and `GOOGLE_CALENDAR_ID`
+(calendar updates),
+`EMAIL_DRY_RUN` (default `1`: nothing is sent until you set `0`), `DEMO_INBOX`, `EMAIL_FROM`,
+`SMTP_HOST`, `SMTP_PORT`,
+`SMTP_USER`, `SMTP_PASS`, `TRUSTED_PROXY_HOPS` (default 1), `WORKER_CONCURRENCY`.
+
+Behind a reverse proxy the app trusts only the address the proxy appended to `X-Forwarded-For`,
+never one the client
+sent, and the login throttle uses it. If something else sits in front of Coolify's proxy (for
+example Cloudflare), set
+`TRUSTED_PROXY_HOPS=2`.
+
+Running the images by hand (for example to check a build):
+
+```bash
+docker compose build
+docker compose run --rm migrate     # apply migrations
+docker compose up -d                # web and worker
+```
+
+Seeding is not part of a deploy. For a brand-new database, run `pnpm db:seed` once from a machine
+with `DIRECT_URL`
+and the `SEED_*` values set. It also resets the demo data, so never run it against data you want to
+keep.
 
 ## Known limits
 
